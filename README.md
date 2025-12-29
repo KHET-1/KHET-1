@@ -4,7 +4,7 @@ Veteran game dev turned indie tool builder. Shipped on 173+ titles at places lik
 
 💎 Currently polishing **diterm**: The diamond-forger for mojibake garbage.
 
-### AAA Highlights (via [MobyGames](https://www.mobygames.com/(redacted)) )
+### AAA Highlights (via [MobyGames](https://www.mobygames.com/(redacted)))
 - Destiny 2
 - Saints Row: The Third
 - Darksiders II
