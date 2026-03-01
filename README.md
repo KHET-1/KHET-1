@@ -25,3 +25,5 @@ Python • CLI tools • Game engines (Unity/Unreal vets) • Whatever ships fas
 - Open to collabs on tools that make devs less rage-y
 
 Thanks for stopping by—let's ship something fun. 🚀
+
+![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/KHET-1/KHET-1?utm_source=oss&utm_medium=github&utm_campaign=KHET-1%2FKHET-1&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
