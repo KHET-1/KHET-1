@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LATTICE — Infrastructure & Triangulation Guide</title>
+<style>
+:root { --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a2e; --accent:#ff6b35; --text:#e8e8f0; --text2:#a0a0b8; --muted:#6a6a80; --border:#2a2a40; --success:#4ade80; --warning:#fbbf24; --info:#60a5fa; --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif; }
+* { margin:0;padding:0;box-sizing:border-box; }
+body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; padding:2rem; }
+.container { max-width:960px; margin:0 auto; }
+h1 { font-size:1.4rem; margin-bottom:0.3rem; background:linear-gradient(135deg,var(--accent),#ff9f6b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+h2 { font-size:1.1rem; margin:2rem 0 0.75rem; color:var(--accent); }
+h3 { font-size:0.95rem; margin:1.2rem 0 0.5rem; }
+.subtitle { color:var(--muted); font-size:0.8rem; margin-bottom:2rem; }
+p, li { color:var(--text2); font-size:0.88rem; line-height:1.7; }
+ul { margin:0.5rem 0 1rem 1.5rem; }
+pre { background:var(--bg2); padding:1rem; border-radius:6px; font-family:var(--mono); font-size:0.73rem; overflow-x:auto; color:var(--text2); border:1px solid var(--border); margin:0.75rem 0; }
+table { width:100%; border-collapse:collapse; font-size:0.82rem; margin:0.75rem 0; }
+th { text-align:left; padding:0.5rem 0.7rem; background:var(--bg3); color:var(--muted); font-size:0.7rem; text-transform:uppercase; border-bottom:1px solid var(--border); }
+td { padding:0.5rem 0.7rem; border-bottom:1px solid var(--border); color:var(--text2); }
+.card { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:1.2rem; margin-bottom:1rem; }
+.badge { display:inline-block; padding:0.15rem 0.4rem; border-radius:3px; font-size:0.65rem; font-weight:600; }
+.badge-android { background:rgba(74,222,128,0.15); color:var(--success); border:1px solid var(--success); }
+.badge-ios { background:rgba(96,165,250,0.15); color:var(--info); border:1px solid var(--info); }
+.badge-linux { background:rgba(255,107,53,0.15); color:var(--accent); border:1px solid var(--accent); }
+.note { background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.3); border-radius:6px; padding:0.8rem 1rem; margin:0.75rem 0; font-size:0.82rem; }
+.note strong { color:var(--warning); }
+a { color:var(--accent); }
+nav { margin-bottom:2rem; }
+nav a { color:var(--accent); text-decoration:none; font-size:0.8rem; margin-right:1rem; }
+</style>
+</head>
+<body>
+<div class="container">
+<nav><a href="/">← Lattice IDE</a> <a href="/agents/">Agents</a> <a href="/agents/results.html">Results</a></nav>
+
+<h1>Infrastructure & Triangulation</h1>
+<p class="subtitle">Best pcap capture shape • Network modifications • Android/iOS/Linux equivalents</p>
+
+<h2>Infrastructure Modifications for Best PCAP Results</h2>
+
+<div class="card">
+<h3>1. Network-Level Capture (Best Shape)</h3>
+<p>For highest fidelity, capture at the router/gateway level — sees ALL device traffic without per-device agents.</p>
+
+<table>
+<tr><th>Method</th><th>Setup</th><th>Coverage</th><th>Effort</th></tr>
+<tr><td>Router mirror port (SPAN)</td><td>Enable port mirroring on your switch/router to a monitoring NIC</td><td>All LAN devices</td><td>Low</td></tr>
+<tr><td>Transparent bridge</td><td>Linux box with 2 NICs inline between router and LAN</td><td>All traffic through bridge</td><td>Medium</td></tr>
+<tr><td>DNS sinkhole (Pi-hole)</td><td>Force all DNS through Pi-hole, log all queries</td><td>DNS only (but reveals all destinations)</td><td>Low</td></tr>
+<tr><td>WiFi monitor mode</td><td>Separate adapter in monitor mode on same channel</td><td>All WiFi (may be encrypted)</td><td>Low</td></tr>
+</table>
+
+<div class="note"><strong>Recommendation:</strong> If your router supports it, enable a SPAN/mirror port sending all traffic to your Parrot box (192.168.2.46). Then run tcpdump on that mirrored interface. This captures phone drip without needing anything installed on phones.</div>
+
+<pre># On Parrot box with mirrored port on eth1:
+sudo tcpdump -i eth1 -w /tmp/all_devices.pcap -c 50000
+
+# Or filter to just phone IPs:
+sudo tcpdump -i eth1 host 192.168.2.XX -w /tmp/phone_traffic.pcap</pre>
+</div>
+
+<div class="card">
+<h3>2. ARP-Based Passive Capture (No Router Access Needed)</h3>
+<p>Use ARP spoofing to position your Parrot box as man-in-the-middle. See all phone traffic without touching the phone.</p>
+
+<pre># On Parrot box — become the "router" for target phone:
+sudo arpspoof -i wlan0 -t PHONE_IP GATEWAY_IP &
+sudo arpspoof -i wlan0 -t GATEWAY_IP PHONE_IP &
+sudo sysctl net.ipv4.ip_forward=1
+
+# Capture everything flowing through:
+sudo tcpdump -i wlan0 host PHONE_IP -w /tmp/phone_mitm.pcap</pre>
+
+<div class="note"><strong>Android vs iOS:</strong> No difference — this is network-level, device-agnostic.</div>
+</div>
+
+<div class="card">
+<h3>3. DNS-Level Monitoring (Lightest Touch)</h3>
+<p>If you control the DNS server (or DHCP), every device reveals its destinations without full packet capture.</p>
+
+<pre># Pi-hole or dnsmasq with full query logging:
+sudo pihole -t   # tail live queries
+
+# Or run a DNS proxy on your Parrot box:
+sudo tcpdump -i any port 53 -w /tmp/dns_all_devices.pcap</pre>
+</div>
+
+<h2>Triangulation — Getting Best Shape</h2>
+
+<div class="card">
+<h3>Triangulation Method: 3-Point Correlation</h3>
+<p>Run capture simultaneously from 3 vantage points to triangulate the drip:</p>
+
+<table>
+<tr><th>Point</th><th>What it sees</th><th>Tool</th></tr>
+<tr><td><strong>A: Source device</strong> (phone)</td><td>Process → connection mapping</td><td>Agent script (sees which app)</td></tr>
+<tr><td><strong>B: Network level</strong> (router/bridge)</td><td>Full packet payload, timing</td><td>tcpdump on mirror port</td></tr>
+<tr><td><strong>C: DNS</strong> (resolver)</td><td>All resolved domains</td><td>Pi-hole log or DNS pcap</td></tr>
+</table>
+
+<p style="margin-top:1rem;">Correlate by timestamp. If phone shows <code>com.whatsapp</code> connecting at 14:03:22, and router pcap shows traffic to <code>157.240.1.35:443</code> at 14:03:22, and DNS log shows <code>edge-mqtt.facebook.com</code> resolved at 14:03:21 — <strong>triangulated.</strong></p>
+</div>
+
+<h2>Android vs iOS — Process & Deviation Matrix</h2>
+
+<table>
+<tr>
+    <th>Capability</th>
+    <th><span class="badge badge-android">ANDROID</span></th>
+    <th><span class="badge badge-ios">iOS</span></th>
+    <th>Deviation</th>
+</tr>
+<tr>
+    <td>Connection list</td>
+    <td><code>/proc/net/tcp</code> (no root needed in Termux)</td>
+    <td><code>netstat</code> (jailbreak) or <code>nettop</code> via rvictl</td>
+    <td>Android exposes /proc freely; iOS locks it down completely without jailbreak</td>
+</tr>
+<tr>
+    <td>Process→Socket map</td>
+    <td>Read <code>/proc/[pid]/fd</code> → socket inodes → match to /proc/net/tcp</td>
+    <td><code>lsof -i</code> (jailbreak only)</td>
+    <td><strong>Major:</strong> Android can map without root via UID matching; iOS requires full jailbreak</td>
+</tr>
+<tr>
+    <td>Packet capture</td>
+    <td><code>tcpdump</code> (root) or VPN-based (no root): PCAPdroid app</td>
+    <td><code>rvictl</code> (USB+Mac) or tcpdump (jailbreak)</td>
+    <td><strong>Major:</strong> Android has PCAPdroid (no root pcap via VPN loopback); iOS has no non-jailbreak equivalent</td>
+</tr>
+<tr>
+    <td>App network stats</td>
+    <td><code>/proc/uid_stat/[uid]/tcp_snd</code> + <code>dumpsys netstats</code></td>
+    <td>Settings → Cellular (manual only), no programmatic access</td>
+    <td>Android exposes per-app byte counters; iOS provides nothing programmatic</td>
+</tr>
+<tr>
+    <td>DNS queries</td>
+    <td>Monitor <code>/proc/net/udp</code> port 53, or private DNS log</td>
+    <td>No access without jailbreak; use network-level DNS capture instead</td>
+    <td>Both need network-level capture for full DNS visibility</td>
+</tr>
+<tr>
+    <td>Background app activity</td>
+    <td><code>dumpsys activity</code>, <code>dumpsys batterystats</code></td>
+    <td>No equivalent without jailbreak</td>
+    <td>Android wins massively on background inspection</td>
+</tr>
+<tr>
+    <td>Live process list</td>
+    <td><code>ps aux</code> or <code>/proc/[pid]/cmdline</code></td>
+    <td><code>ps</code> (jailbreak) or Instruments (Mac)</td>
+    <td>Similar when jailbroken; iOS is opaque otherwise</td>
+</tr>
+<tr>
+    <td>No-root capture</td>
+    <td><strong>PCAPdroid</strong> (VPN-based, full pcap, process mapping)</td>
+    <td><strong>rvictl</strong> (requires Mac + USB) — no on-device option</td>
+    <td><strong>Major:</strong> Android can self-capture without root; iOS cannot</td>
+</tr>
+</table>
+
+<h2>Android: Best Method Without Root</h2>
+
+<div class="card">
+<h3>PCAPdroid (Recommended — No Root Required)</h3>
+<p>Creates a local VPN, captures all traffic with per-app attribution. Exports pcap files.</p>
+<pre># Install: Play Store → "PCAPdroid"
+# Or: https://github.com/emanuele-f/PCAPdroid/releases
+
+# Configure:
+# 1. Open PCAPdroid
+# 2. Set capture mode: "PCAP File"  
+# 3. Enable "Show connection details" for process mapping
+# 4. Start capture
+# 5. Export .pcap file
+# 6. Upload to Lattice:
+
+curl -X POST https://firestar-defense.vercel.app/api/ingest \
+  -H "Content-Type: application/octet-stream" \
+  -H "X-Device-ID: android-$(getprop ro.serialno)" \
+  --data-binary @/sdcard/PCAPdroid/capture.pcap</pre>
+
+<div class="note"><strong>Why PCAPdroid is best for Android:</strong> It captures full pcap WITH process/app attribution — no root, no ADB, no computer needed. The VPN loopback means the phone captures its own traffic including which app generated each packet.</div>
+</div>
+
+<div class="card">
+<h3>Termux Agent (More Detail, Needs ADB or Root for Full Power)</h3>
+<pre># Without root (partial — connections only, no pcap):
+curl -sL https://firestar-defense.vercel.app/agents/phone-capture-android.sh | bash
+
+# With root (full capture):
+su -c "tcpdump -i any -c 5000 -w /sdcard/capture.pcap" &
+# Then upload when done</pre>
+</div>
+
+<h2>iOS: Best Methods</h2>
+
+<div class="card">
+<h3>Method A: rvictl (Mac + USB — Recommended)</h3>
+<pre># On Mac with iPhone connected USB:
+curl -sL https://firestar-defense.vercel.app/agents/phone-capture-ios.sh | bash</pre>
+<p>This is the Apple-sanctioned method. Full pcap. No jailbreak. Requires physical USB connection to a Mac.</p>
+</div>
+
+<div class="card">
+<h3>Method B: Network-Level (No Mac, No Jailbreak)</h3>
+<p>If you can't use rvictl, capture at the router/gateway (see infrastructure section above). The phone's IP will be in the pcap.</p>
+</div>
+
+<h2>Best Shape: Complete Capture Checklist</h2>
+
+<div class="card">
+<pre>
+IDEAL SETUP FOR MAXIMUM TRIANGULATION:
+
+□ Router: Mirror port → Parrot box (captures ALL devices passively)
+□ DNS: Pi-hole or logged resolver (shows all domains resolved)
+□ Android phones: PCAPdroid running (per-app pcap, no root)  
+□ iOS phones: rvictl from Mac OR just rely on router mirror
+□ Parrot box: Full lattice_team.py analysis on collected pcaps
+□ All results → POST to https://firestar-defense.vercel.app/api/ingest
+□ View at: https://firestar-defense.vercel.app/agents/results.html
+
+TIME-SYNC ALL CAPTURES:
+  - All devices NTP-synced to same server
+  - Timestamp correlation across 3 points enables triangulation
+  - Match: process name (point A) + packet (point B) + DNS (point C)
+</pre>
+</div>
+
+<p style="text-align:center;margin-top:2rem;">
+    <a href="/agents/" style="padding:0.6rem 1.2rem;background:var(--accent);color:white;border-radius:6px;text-decoration:none;font-weight:600;">Download Agents</a>
+</p>
+</div>
+</body>
+</html>

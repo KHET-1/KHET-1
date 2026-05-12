@@ -62,7 +62,7 @@ a { color:var(--accent); }
         <div class="reqs">Requires: Termux or root shell | Optional: tcpdump, python3</div>
         <a href="phone-capture-android.sh" class="btn" download>Download Script</a>
         <a href="#" class="btn btn-outline" onclick="copyCmd('android')">Copy One-Liner</a>
-        <pre id="cmd-android">curl -sL https://workspace-star-far.vercel.app/agents/phone-capture-android.sh | bash</pre>
+        <pre id="cmd-android">curl -sL https://firestar-defense.vercel.app/agents/phone-capture-android.sh | bash</pre>
     </div>
 
     <div class="agent-card">
@@ -74,7 +74,7 @@ a { color:var(--accent); }
         <div class="reqs">Requires: macOS + Xcode + USB connection | OR: Jailbroken iOS with tcpdump</div>
         <a href="phone-capture-ios.sh" class="btn" download>Download Script</a>
         <a href="#" class="btn btn-outline" onclick="copyCmd('ios')">Copy One-Liner</a>
-        <pre id="cmd-ios">curl -sL https://workspace-star-far.vercel.app/agents/phone-capture-ios.sh | bash</pre>
+        <pre id="cmd-ios">curl -sL https://firestar-defense.vercel.app/agents/phone-capture-ios.sh | bash</pre>
         <p style="font-size:0.8rem;color:var(--muted);margin-top:0.5rem;">For jailbroken: append <code>-s -- --jailbreak</code></p>
     </div>
 
@@ -86,24 +86,25 @@ a { color:var(--accent); }
         <div class="reqs">Requires: Python 3, tcpdump (sudo), pyshark, pandas</div>
         <a href="/drip_trace.sh" class="btn" download>Download Trace Script</a>
         <a href="#" class="btn btn-outline" onclick="copyCmd('linux')">Copy One-Liner</a>
-        <pre id="cmd-linux">curl -sL https://workspace-star-far.vercel.app/drip_trace.sh | sudo bash 2>&1 | curl -X POST https://workspace-star-far.vercel.app/api/ingest -H "Content-Type: text/plain" -H "X-Device-ID: $(hostname)" -d @-</pre>
+        <pre id="cmd-linux">curl -sL https://firestar-defense.vercel.app/drip_trace.sh | sudo bash 2>&1 | curl -X POST https://firestar-defense.vercel.app/api/ingest -H "Content-Type: text/plain" -H "X-Device-ID: $(hostname)" -d @-</pre>
     </div>
 
     <div class="agent-card">
         <h2>Manual Upload</h2>
         <p>Already have a pcap or capture results? Upload directly:</p>
-        <pre>curl -X POST https://workspace-star-far.vercel.app/api/ingest \
+        <pre>curl -X POST https://firestar-defense.vercel.app/api/ingest \
   -H "Content-Type: application/octet-stream" \
   -H "X-Device-ID: my-phone" \
   --data-binary @/path/to/capture.pcap</pre>
         <p style="margin-top:1rem;font-size:0.85rem;">Or upload JSON results:</p>
-        <pre>curl -X POST https://workspace-star-far.vercel.app/api/ingest \
+        <pre>curl -X POST https://firestar-defense.vercel.app/api/ingest \
   -H "Content-Type: application/json" \
   -d '{"connections": [...], "processes": [...], "device": "phone-1"}'</pre>
     </div>
 
     <p style="margin-top:2rem;text-align:center;">
         <a href="/agents/results.html" class="btn">View Results Dashboard</a>
+        <a href="/agents/infrastructure.html" class="btn">Infrastructure Guide</a>
         <a href="/" class="btn btn-outline">Back to Lattice IDE</a>
     </p>
 </div>

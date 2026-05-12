@@ -17,7 +17,7 @@
 #
 # For non-root: uses /proc/net + dumpsys instead of tcpdump
 
-LATTICE_ENDPOINT="https://workspace-star-far.vercel.app/api/ingest"
+LATTICE_ENDPOINT="https://firestar-defense.vercel.app/api/ingest"
 DEVICE_ID="android-$(getprop ro.serialno 2>/dev/null || echo $(cat /proc/sys/kernel/random/uuid | cut -d- -f1))"
 CAPTURE_DIR="/tmp/lattice_capture_$$"
 DURATION=${1:-30}

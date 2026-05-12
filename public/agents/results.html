@@ -51,13 +51,13 @@ nav a { color:var(--accent); text-decoration:none; font-size:0.8rem; }
         <p>Deploy an agent to start receiving capture data:</p>
         <pre style="text-align:left;display:inline-block;margin-top:1rem;background:var(--bg2);padding:1rem;border-radius:6px;font-family:var(--mono);font-size:0.75rem;border:1px solid var(--border);color:var(--text2);">
 # Android (Termux):
-curl -sL https://workspace-star-far.vercel.app/agents/phone-capture-android.sh | bash
+curl -sL https://firestar-defense.vercel.app/agents/phone-capture-android.sh | bash
 
 # iOS (Mac + USB):
-curl -sL https://workspace-star-far.vercel.app/agents/phone-capture-ios.sh | bash
+curl -sL https://firestar-defense.vercel.app/agents/phone-capture-ios.sh | bash
 
 # Manual upload:
-curl -X POST https://workspace-star-far.vercel.app/api/ingest \
+curl -X POST https://firestar-defense.vercel.app/api/ingest \
   -H "Content-Type: application/json" \
   -H "X-Device-ID: my-device" \
   -d '{"test": true, "connections": [{"dst": "8.8.8.8:443"}]}'
