@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LATTICE — Incoming Results</title>
+<style>
+:root { --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a2e; --accent:#ff6b35; --text:#e8e8f0; --text2:#a0a0b8; --muted:#6a6a80; --border:#2a2a40; --success:#4ade80; --warning:#fbbf24; --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif; }
+* { margin:0;padding:0;box-sizing:border-box; }
+body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; }
+.header { background:var(--bg2); border-bottom:1px solid var(--border); padding:1rem 2rem; display:flex; align-items:center; justify-content:space-between; }
+.logo { font-weight:800; background:linear-gradient(135deg,var(--accent),#ff9f6b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.status { font-family:var(--mono); font-size:0.75rem; }
+.status.live { color:var(--success); }
+.status.waiting { color:var(--warning); }
+.container { max-width:1200px; margin:0 auto; padding:1.5rem; }
+.empty { text-align:center; padding:4rem; color:var(--muted); }
+.empty h2 { margin-bottom:1rem; }
+.result-card { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:1.2rem; margin-bottom:1rem; }
+.result-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; }
+.result-device { font-weight:600; font-size:0.95rem; }
+.result-time { font-family:var(--mono); font-size:0.7rem; color:var(--muted); }
+.result-meta { display:flex; gap:1rem; font-size:0.8rem; color:var(--text2); margin-bottom:0.75rem; }
+.result-payload { background:var(--bg2); border:1px solid var(--border); border-radius:4px; padding:0.75rem; font-family:var(--mono); font-size:0.72rem; max-height:300px; overflow:auto; white-space:pre-wrap; color:var(--text2); }
+.badge { display:inline-block; padding:0.15rem 0.45rem; border-radius:3px; font-size:0.65rem; font-weight:600; }
+.badge-new { background:rgba(74,222,128,0.15); color:var(--success); border:1px solid var(--success); }
+.refresh-bar { background:var(--bg2); padding:0.5rem 2rem; border-bottom:1px solid var(--border); font-size:0.75rem; color:var(--muted); display:flex; align-items:center; gap:0.5rem; }
+.pulse { width:8px;height:8px;border-radius:50%;background:var(--success);animation:pulse 2s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+nav { display:flex; gap:1rem; }
+nav a { color:var(--accent); text-decoration:none; font-size:0.8rem; }
+</style>
+</head>
+<body>
+<div class="header">
+    <div class="logo">LATTICE RESULTS</div>
+    <nav>
+        <a href="/agents/">Download Agents</a>
+        <a href="/">Lattice IDE</a>
+    </nav>
+</div>
+<div class="refresh-bar">
+    <div class="pulse"></div>
+    <span>Auto-refresh: <span id="countdown">10</span>s | Last check: <span id="last-check">—</span></span>
+    <span id="status-text" class="status waiting" style="margin-left:auto;">WAITING FOR DATA...</span>
+</div>
+
+<div class="container" id="results-container">
+    <div class="empty" id="empty-state">
+        <h2>No results yet</h2>
+        <p>Deploy an agent to start receiving capture data:</p>
+        <pre style="text-align:left;display:inline-block;margin-top:1rem;background:var(--bg2);padding:1rem;border-radius:6px;font-family:var(--mono);font-size:0.75rem;border:1px solid var(--border);color:var(--text2);">
+# Android (Termux):
+curl -sL https://workspace-star-far.vercel.app/agents/phone-capture-android.sh | bash
+
+# iOS (Mac + USB):
+curl -sL https://workspace-star-far.vercel.app/agents/phone-capture-ios.sh | bash
+
+# Manual upload:
+curl -X POST https://workspace-star-far.vercel.app/api/ingest \
+  -H "Content-Type: application/json" \
+  -H "X-Device-ID: my-device" \
+  -d '{"test": true, "connections": [{"dst": "8.8.8.8:443"}]}'
+        </pre>
+    </div>
+</div>
+
+<script>
+const REFRESH_INTERVAL = 10000;
+let countdown = 10;
+
+async function fetchResults() {
+    try {
+        const res = await fetch('/api/results');
+        const data = await res.json();
+        
+        document.getElementById('last-check').textContent = new Date().toLocaleTimeString();
+        
+        if (data.count === 0) {
+            document.getElementById('empty-state').style.display = 'block';
+            document.getElementById('status-text').textContent = 'WAITING FOR DATA...';
+            document.getElementById('status-text').className = 'status waiting';
+            return;
+        }
+
+        document.getElementById('empty-state').style.display = 'none';
+        document.getElementById('status-text').textContent = `${data.count} CAPTURE(S) RECEIVED`;
+        document.getElementById('status-text').className = 'status live';
+
+        const container = document.getElementById('results-container');
+        let html = '';
+        
+        // Show newest first
+        const results = [...data.results].reverse();
+        
+        for (const r of results) {
+            const isNew = (Date.now() - new Date(r.received_at).getTime()) < 60000;
+            html += `
+            <div class="result-card">
+                <div class="result-header">
+                    <span class="result-device">${r.device_id} ${isNew ? '<span class="badge badge-new">NEW</span>' : ''}</span>
+                    <span class="result-time">${r.received_at}</span>
+                </div>
+                <div class="result-meta">
+                    <span>Size: ${(r.size_bytes / 1024).toFixed(1)} KB</span>
+                    <span>Type: ${r.content_type || 'unknown'}</span>
+                    <span>Captured: ${r.capture_time || '—'}</span>
+                </div>
+                <div class="result-payload">${JSON.stringify(r.payload, null, 2)}</div>
+            </div>`;
+        }
+        
+        container.innerHTML = html;
+    } catch (err) {
+        document.getElementById('status-text').textContent = 'CONNECTION ERROR';
+        document.getElementById('status-text').className = 'status waiting';
+    }
+}
+
+// Countdown timer
+setInterval(() => {
+    countdown--;
+    document.getElementById('countdown').textContent = countdown;
+    if (countdown <= 0) {
+        countdown = 10;
+        fetchResults();
+    }
+}, 1000);
+
+// Initial fetch
+fetchResults();
+</script>
+</body>
+</html>

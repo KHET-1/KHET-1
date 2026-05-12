@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LATTICE AGENTS — Download & Deploy</title>
+<style>
+:root { --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a2e; --accent:#ff6b35; --text:#e8e8f0; --text2:#a0a0b8; --muted:#6a6a80; --border:#2a2a40; --success:#4ade80; --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif; }
+* { margin:0;padding:0;box-sizing:border-box; }
+body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; padding:2rem; }
+.container { max-width:900px; margin:0 auto; }
+h1 { font-size:1.5rem; margin-bottom:0.5rem; background:linear-gradient(135deg,var(--accent),#ff9f6b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.subtitle { color:var(--muted); font-size:0.8rem; margin-bottom:2rem; }
+.agent-card { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:1.5rem; margin-bottom:1.5rem; }
+.agent-card h2 { font-size:1.1rem; margin-bottom:0.5rem; }
+.agent-card p { color:var(--text2); font-size:0.85rem; line-height:1.6; margin-bottom:1rem; }
+.agent-card .reqs { color:var(--muted); font-size:0.75rem; font-family:var(--mono); margin-bottom:1rem; }
+.btn { display:inline-block; padding:0.6rem 1.2rem; background:var(--accent); color:white; text-decoration:none; border-radius:6px; font-weight:600; font-size:0.85rem; margin-right:0.5rem; margin-bottom:0.5rem; transition:opacity 0.2s; }
+.btn:hover { opacity:0.85; }
+.btn-outline { background:none; border:1px solid var(--accent); color:var(--accent); }
+pre { background:var(--bg2); padding:1rem; border-radius:6px; font-family:var(--mono); font-size:0.75rem; overflow-x:auto; color:var(--text2); border:1px solid var(--border); margin:1rem 0; }
+.flow { background:var(--bg2); border:1px solid var(--border); border-radius:8px; padding:1.5rem; margin:2rem 0; }
+.flow h3 { margin-bottom:1rem; font-size:1rem; }
+.flow-step { display:flex; align-items:flex-start; gap:1rem; margin-bottom:1rem; }
+.flow-num { width:28px; height:28px; background:var(--accent); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem; flex-shrink:0; }
+.flow-text { font-size:0.85rem; color:var(--text2); line-height:1.6; }
+.flow-text strong { color:var(--text); }
+a { color:var(--accent); }
+</style>
+</head>
+<body>
+<div class="container">
+    <h1>LATTICE AGENTS</h1>
+    <p class="subtitle">KHET-1 OPERATION • Download → Run → Capture → Return → Display</p>
+
+    <div class="flow">
+        <h3>Full Loop: End-to-End Flow</h3>
+        <div class="flow-step">
+            <div class="flow-num">1</div>
+            <div class="flow-text"><strong>Download</strong> — Agent script from this page (curl one-liner or manual download)</div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">2</div>
+            <div class="flow-text"><strong>Run</strong> — Execute on target device (phone/laptop). Captures network state, connections, packets.</div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">3</div>
+            <div class="flow-text"><strong>Return</strong> — Results automatically POST to <code>/api/ingest</code> (or manually upload tarball)</div>
+        </div>
+        <div class="flow-step">
+            <div class="flow-num">4</div>
+            <div class="flow-text"><strong>Display</strong> — View results at <a href="/agents/results.html">/agents/results.html</a> (auto-refreshes every 10s)</div>
+        </div>
+    </div>
+
+    <div class="agent-card">
+        <h2>Android Agent</h2>
+        <p>
+            Captures network connections, maps processes to sockets via /proc/net, runs tcpdump if available.
+            Works on Termux (non-root partial capture) or rooted devices (full capture).
+        </p>
+        <div class="reqs">Requires: Termux or root shell | Optional: tcpdump, python3</div>
+        <a href="phone-capture-android.sh" class="btn" download>Download Script</a>
+        <a href="#" class="btn btn-outline" onclick="copyCmd('android')">Copy One-Liner</a>
+        <pre id="cmd-android">curl -sL https://workspace-star-far.vercel.app/agents/phone-capture-android.sh | bash</pre>
+    </div>
+
+    <div class="agent-card">
+        <h2>iOS Agent (via macOS relay)</h2>
+        <p>
+            Uses Apple's <code>rvictl</code> to create a virtual network interface mirroring iPhone traffic over USB.
+            Requires Mac with Xcode + iPhone connected via USB. Also supports jailbroken iOS direct capture.
+        </p>
+        <div class="reqs">Requires: macOS + Xcode + USB connection | OR: Jailbroken iOS with tcpdump</div>
+        <a href="phone-capture-ios.sh" class="btn" download>Download Script</a>
+        <a href="#" class="btn btn-outline" onclick="copyCmd('ios')">Copy One-Liner</a>
+        <pre id="cmd-ios">curl -sL https://workspace-star-far.vercel.app/agents/phone-capture-ios.sh | bash</pre>
+        <p style="font-size:0.8rem;color:var(--muted);margin-top:0.5rem;">For jailbroken: append <code>-s -- --jailbreak</code></p>
+    </div>
+
+    <div class="agent-card">
+        <h2>Linux/Desktop Agent</h2>
+        <p>
+            Full Lattice Team analysis on any Linux box. Captures live traffic, traces processes, runs dual-council swarm.
+        </p>
+        <div class="reqs">Requires: Python 3, tcpdump (sudo), pyshark, pandas</div>
+        <a href="/drip_trace.sh" class="btn" download>Download Trace Script</a>
+        <a href="#" class="btn btn-outline" onclick="copyCmd('linux')">Copy One-Liner</a>
+        <pre id="cmd-linux">curl -sL https://workspace-star-far.vercel.app/drip_trace.sh | sudo bash 2>&1 | curl -X POST https://workspace-star-far.vercel.app/api/ingest -H "Content-Type: text/plain" -H "X-Device-ID: $(hostname)" -d @-</pre>
+    </div>
+
+    <div class="agent-card">
+        <h2>Manual Upload</h2>
+        <p>Already have a pcap or capture results? Upload directly:</p>
+        <pre>curl -X POST https://workspace-star-far.vercel.app/api/ingest \
+  -H "Content-Type: application/octet-stream" \
+  -H "X-Device-ID: my-phone" \
+  --data-binary @/path/to/capture.pcap</pre>
+        <p style="margin-top:1rem;font-size:0.85rem;">Or upload JSON results:</p>
+        <pre>curl -X POST https://workspace-star-far.vercel.app/api/ingest \
+  -H "Content-Type: application/json" \
+  -d '{"connections": [...], "processes": [...], "device": "phone-1"}'</pre>
+    </div>
+
+    <p style="margin-top:2rem;text-align:center;">
+        <a href="/agents/results.html" class="btn">View Results Dashboard</a>
+        <a href="/" class="btn btn-outline">Back to Lattice IDE</a>
+    </p>
+</div>
+
+<script>
+function copyCmd(id) {
+    const pre = document.getElementById('cmd-' + id);
+    navigator.clipboard.writeText(pre.textContent);
+    event.target.textContent = 'Copied!';
+    setTimeout(() => event.target.textContent = 'Copy One-Liner', 1500);
+}
+</script>
+</body>
+</html>
