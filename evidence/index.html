@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LATTICE IDE — KHET-1</title>
+<style>
+:root {
+    --bg: #0a0a0f;
+    --bg2: #12121a;
+    --bg3: #1a1a2e;
+    --accent: #ff6b35;
+    --text: #e8e8f0;
+    --muted: #6a6a80;
+    --border: #2a2a40;
+    --success: #4ade80;
+    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --sans: 'Inter', -apple-system, sans-serif;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; }
+
+.ide-container { display:grid; grid-template-rows:48px 1fr; height:100vh; }
+
+.toolbar {
+    background:var(--bg2);
+    border-bottom:1px solid var(--border);
+    display:flex;
+    align-items:center;
+    padding:0 1.5rem;
+    gap:1.5rem;
+}
+.toolbar-logo {
+    font-weight:800;
+    font-size:1rem;
+    background:linear-gradient(135deg, var(--accent), #ff9f6b);
+    -webkit-background-clip:text;
+    -webkit-text-fill-color:transparent;
+}
+.toolbar-status {
+    font-family:var(--mono);
+    font-size:0.7rem;
+    color:var(--success);
+    display:flex;
+    align-items:center;
+    gap:0.4rem;
+}
+.toolbar-status::before {
+    content:'';
+    width:6px;height:6px;
+    background:var(--success);
+    border-radius:50%;
+    animation:pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
+
+.toolbar-nav {
+    display:flex;
+    gap:0.5rem;
+    margin-left:auto;
+}
+.toolbar-nav a {
+    color:var(--muted);
+    text-decoration:none;
+    font-size:0.8rem;
+    padding:0.4rem 0.8rem;
+    border-radius:4px;
+    transition:all 0.2s;
+}
+.toolbar-nav a:hover { color:var(--text); background:var(--bg3); }
+.toolbar-nav a.active { color:var(--accent); background:rgba(255,107,53,0.1); }
+
+.main-content {
+    display:grid;
+    grid-template-columns:240px 1fr;
+    overflow:hidden;
+}
+
+.sidebar {
+    background:var(--bg2);
+    border-right:1px solid var(--border);
+    padding:1rem 0;
+    overflow-y:auto;
+}
+.sidebar-section {
+    padding:0.5rem 1rem;
+    font-size:0.7rem;
+    color:var(--muted);
+    text-transform:uppercase;
+    letter-spacing:1px;
+    margin-top:0.5rem;
+}
+.sidebar-item {
+    display:block;
+    padding:0.5rem 1rem 0.5rem 1.5rem;
+    color:var(--text);
+    text-decoration:none;
+    font-size:0.82rem;
+    border-left:2px solid transparent;
+    transition:all 0.15s;
+    cursor:pointer;
+}
+.sidebar-item:hover {
+    background:var(--bg3);
+    border-left-color:var(--accent);
+}
+.sidebar-item.active {
+    background:rgba(255,107,53,0.08);
+    border-left-color:var(--accent);
+    color:var(--accent);
+}
+.sidebar-item .badge {
+    float:right;
+    font-size:0.65rem;
+    padding:0.1rem 0.4rem;
+    border-radius:3px;
+    background:var(--bg3);
+    color:var(--muted);
+}
+
+.editor-area {
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+}
+.tab-bar {
+    display:flex;
+    background:var(--bg2);
+    border-bottom:1px solid var(--border);
+    overflow-x:auto;
+}
+.tab {
+    padding:0.6rem 1.2rem;
+    font-size:0.8rem;
+    color:var(--muted);
+    cursor:pointer;
+    border-bottom:2px solid transparent;
+    white-space:nowrap;
+    transition:all 0.15s;
+}
+.tab:hover { color:var(--text); }
+.tab.active { color:var(--accent); border-bottom-color:var(--accent); background:rgba(255,107,53,0.03); }
+
+.iframe-container {
+    flex:1;
+    overflow:hidden;
+}
+.iframe-container iframe {
+    width:100%;
+    height:100%;
+    border:none;
+    background:var(--bg);
+}
+
+.panel-bottom {
+    height:180px;
+    background:var(--bg2);
+    border-top:1px solid var(--border);
+    overflow:auto;
+    padding:0.75rem 1rem;
+    font-family:var(--mono);
+    font-size:0.75rem;
+    color:var(--muted);
+    line-height:1.6;
+}
+.panel-bottom .line-ok { color:var(--success); }
+.panel-bottom .line-warn { color:#fbbf24; }
+.panel-bottom .line-info { color:#60a5fa; }
+</style>
+</head>
+<body>
+<div class="ide-container">
+    <div class="toolbar">
+        <div class="toolbar-logo">LATTICE IDE</div>
+        <div class="toolbar-status">KHET-1 OPERATION ACTIVE</div>
+        <div class="toolbar-nav">
+            <a href="#" class="active" onclick="loadReport('starfire_report_final.html')">Report</a>
+            <a href="#" onclick="loadReport('lattice_starfire_report.html')">Swarm Output</a>
+            <a href="forensic_findings.json" target="_blank">JSON</a>
+            <a href="merkle_manifest.json" target="_blank">Merkle</a>
+        </div>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+            <div class="sidebar-section">Evidence Files</div>
+            <a class="sidebar-item" onclick="loadReport('starfire_report_final.html')">
+                StarFire Report <span class="badge">FINAL</span>
+            </a>
+            <a class="sidebar-item" onclick="loadReport('lattice_starfire_report.html')">
+                Swarm Analysis <span class="badge">RAW</span>
+            </a>
+
+            <div class="sidebar-section">Source Data</div>
+            <a class="sidebar-item">ppppppppppppppp.pcapng <span class="badge">13MB</span></a>
+            <a class="sidebar-item">2.pcapng <span class="badge">12.7MB</span></a>
+            <a class="sidebar-item">1.pcapng <span class="badge">1.3MB</span></a>
+
+            <div class="sidebar-section">Analysis Artifacts</div>
+            <a class="sidebar-item" href="forensic_findings.json" target="_blank">forensic_findings.json</a>
+            <a class="sidebar-item" href="lattice_report.json" target="_blank">lattice_report.json</a>
+            <a class="sidebar-item" href="merkle_manifest.json" target="_blank">merkle_manifest.json</a>
+
+            <div class="sidebar-section">Tools</div>
+            <a class="sidebar-item" href="drip_trace.sh" target="_blank">drip_trace.sh <span class="badge">RUN LOCAL</span></a>
+
+            <div class="sidebar-section">Integrity</div>
+            <div style="padding:0.5rem 1.5rem;font-family:var(--mono);font-size:0.65rem;color:var(--success);line-height:1.8;">
+                ROOT: 98f1654771...<br>
+                LEAVES: 2,066<br>
+                STATUS: VERIFIED ✓
+            </div>
+        </div>
+
+        <div class="editor-area">
+            <div class="tab-bar">
+                <div class="tab active" onclick="loadReport('starfire_report_final.html')">starfire_report_final.html</div>
+                <div class="tab" onclick="loadReport('lattice_starfire_report.html')">lattice_starfire_report.html</div>
+            </div>
+            <div class="iframe-container">
+                <iframe id="report-frame" src="starfire_report_final.html"></iframe>
+            </div>
+            <div class="panel-bottom">
+                <div class="line-ok">[LATTICE] Operation complete. All tokens earned their keep.</div>
+                <div class="line-info">[MERKLE] Root: 98f16547712914e95d1b9f73d5abe6f7a119b250b71071692220ddfe57b72503</div>
+                <div class="line-info">[MERKLE] Leaves: 2,066 | All verified</div>
+                <div class="line-ok">[CRYSTALLINE LATTICE] Evidence sealed. Diamond-hand enforced.</div>
+                <div class="line-info">[PARSE] 9,528 packets across 3 evidence files</div>
+                <div class="line-info">[COUNCIL-α] 492 red outposts → 1 castle (PORT_HOPPING)</div>
+                <div class="line-info">[COUNCIL-β] 491 blue outposts → 3 castles (HTTPS, INFRA, LOW_VOL)</div>
+                <div class="line-ok">[FINAL MAKER] Blue prevails. Drip = local polling loop.</div>
+                <div class="line-warn">[OFFENDER] gvfsd-http PID 181723 — CLOSE-WAIT FD leak on :7734, :8082</div>
+                <div class="line-info">[SOCRATIC] Python 3.13 → urllib → GIO → DBus → gvfsd-http → Mac Mini</div>
+                <div class="line-ok">[VERDICT] AUTOMATED POLLING / LOCAL SERVICE MESH — BENIGN</div>
+                <div class="line-info">[RAYON] 4 workers | 6.4x parallelism | 10 tasks | 0 failures</div>
+                <div class="line-ok">[STARFIRE] Report served. All systems nominal.</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function loadReport(file) {
+    document.getElementById('report-frame').src = file;
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.sidebar-item').forEach(t => t.classList.remove('active'));
+    event.target.classList.add('active');
+}
+</script>
+</body>
+</html>
