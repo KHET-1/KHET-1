@@ -9,241 +9,522 @@
     --bg: #0a0a0f;
     --bg2: #12121a;
     --bg3: #1a1a2e;
+    --bg4: #222240;
     --accent: #ff6b35;
+    --accent2: #ff9f6b;
     --text: #e8e8f0;
+    --text2: #a0a0b8;
     --muted: #6a6a80;
     --border: #2a2a40;
     --success: #4ade80;
-    --mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --info: #60a5fa;
+    --mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
     --sans: 'Inter', -apple-system, sans-serif;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
-body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; }
+body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; overflow-x:hidden; }
 
-.ide-container { display:grid; grid-template-rows:48px 1fr; height:100vh; }
+/* fold7: collapsible sections for airgap viewing */
+.fold7 { border:1px solid var(--border); border-radius:8px; margin-bottom:1rem; overflow:hidden; }
+.fold7-header {
+    background:var(--bg2); padding:0.75rem 1.2rem; cursor:pointer;
+    display:flex; align-items:center; justify-content:space-between;
+    font-weight:600; font-size:0.9rem; user-select:none;
+    transition:background 0.15s;
+}
+.fold7-header:hover { background:var(--bg3); }
+.fold7-header::after { content:'▼'; font-size:0.7rem; color:var(--muted); transition:transform 0.2s; }
+.fold7.collapsed .fold7-header::after { transform:rotate(-90deg); }
+.fold7-body { padding:1.2rem; background:var(--bg); }
+.fold7.collapsed .fold7-body { display:none; }
 
-.toolbar {
-    background:var(--bg2);
+.header {
+    background:linear-gradient(135deg, var(--bg2), #1a0a20);
     border-bottom:1px solid var(--border);
-    display:flex;
-    align-items:center;
-    padding:0 1.5rem;
-    gap:1.5rem;
+    padding:1.2rem 2rem;
+    display:flex; align-items:center; justify-content:space-between;
 }
-.toolbar-logo {
-    font-weight:800;
-    font-size:1rem;
-    background:linear-gradient(135deg, var(--accent), #ff9f6b);
-    -webkit-background-clip:text;
-    -webkit-text-fill-color:transparent;
-}
-.toolbar-status {
-    font-family:var(--mono);
-    font-size:0.7rem;
-    color:var(--success);
-    display:flex;
-    align-items:center;
-    gap:0.4rem;
-}
-.toolbar-status::before {
-    content:'';
-    width:6px;height:6px;
-    background:var(--success);
-    border-radius:50%;
-    animation:pulse 2s infinite;
-}
+.logo { font-size:1.4rem; font-weight:800; background:linear-gradient(135deg,var(--accent),var(--accent2)); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.logo-sub { font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:2px; }
+.status { font-family:var(--mono); font-size:0.7rem; color:var(--success); }
+
+.nav { display:flex; gap:0.3rem; background:var(--bg2); padding:0.4rem; border-bottom:1px solid var(--border); overflow-x:auto; }
+.nav-btn { padding:0.5rem 1rem; border:none; background:none; color:var(--muted); font-size:0.8rem; cursor:pointer; border-radius:4px; white-space:nowrap; }
+.nav-btn:hover { background:var(--bg3); color:var(--text); }
+.nav-btn.active { background:rgba(255,107,53,0.1); color:var(--accent); }
+
+.page { display:none; padding:1.5rem; max-width:1400px; margin:0 auto; }
+.page.active { display:block; }
+
+.card { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:1.2rem; margin-bottom:1rem; }
+.card-title { font-weight:600; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem; }
+
+.metric-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(160px,1fr)); gap:0.75rem; margin-bottom:1rem; }
+.metric { background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:0.8rem; }
+.metric-val { font-size:1.5rem; font-weight:700; font-family:var(--mono); color:var(--accent); }
+.metric-lbl { font-size:0.65rem; color:var(--muted); text-transform:uppercase; letter-spacing:1px; margin-top:0.2rem; }
+
+table { width:100%; border-collapse:collapse; font-size:0.82rem; }
+th { text-align:left; padding:0.6rem 0.8rem; background:var(--bg2); color:var(--muted); font-size:0.7rem; text-transform:uppercase; letter-spacing:0.5px; border-bottom:1px solid var(--border); }
+td { padding:0.6rem 0.8rem; border-bottom:1px solid var(--border); font-family:var(--mono); font-size:0.78rem; }
+tr:hover { background:var(--bg4); }
+
+.badge { display:inline-block; padding:0.15rem 0.45rem; border-radius:3px; font-size:0.65rem; font-weight:600; text-transform:uppercase; }
+.badge-red { background:rgba(248,113,113,0.15); color:var(--danger); border:1px solid var(--danger); }
+.badge-blue { background:rgba(96,165,250,0.15); color:var(--info); border:1px solid var(--info); }
+.badge-green { background:rgba(74,222,128,0.15); color:var(--success); border:1px solid var(--success); }
+.badge-yellow { background:rgba(251,191,36,0.15); color:var(--warning); border:1px solid var(--warning); }
+
+.debate { margin-bottom:1rem; }
+.debate-side { padding:0.8rem 1rem; margin-bottom:0.3rem; border-radius:4px; border-left:3px solid; }
+.debate-red { background:rgba(248,113,113,0.05); border-left-color:var(--danger); }
+.debate-blue { background:rgba(96,165,250,0.05); border-left-color:var(--info); }
+.debate-verdict { background:rgba(74,222,128,0.05); border-left-color:var(--success); padding:0.8rem 1rem; border-radius:4px; border-left:3px solid var(--success); }
+.debate-label { font-size:0.65rem; font-weight:700; text-transform:uppercase; letter-spacing:1px; margin-bottom:0.3rem; }
+
+/* Network topology SVG graph */
+.topo-graph { width:100%; min-height:400px; background:var(--bg2); border-radius:8px; border:1px solid var(--border); }
+.topo-node { cursor:pointer; }
+.topo-node circle { transition:r 0.2s; }
+.topo-node:hover circle { r:28; }
+.topo-label { font-family:var(--mono); font-size:10px; fill:var(--text); text-anchor:middle; }
+.topo-sublabel { font-family:var(--sans); font-size:8px; fill:var(--muted); text-anchor:middle; }
+.topo-edge { stroke:var(--border); stroke-width:1.5; }
+.topo-edge-active { stroke:var(--accent); stroke-width:2; stroke-dasharray:4,3; animation:flow 1s linear infinite; }
+@keyframes flow { to { stroke-dashoffset:-7; } }
+
+.tracked-item { display:flex; align-items:flex-start; gap:0.75rem; padding:0.75rem; background:var(--bg2); border-radius:6px; margin-bottom:0.5rem; border:1px solid var(--border); }
+.tracked-dot { width:8px; height:8px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+.tracked-dot.active { background:var(--accent); animation:pulse 2s infinite; }
+.tracked-dot.resolved { background:var(--success); }
+.tracked-dot.monitoring { background:var(--warning); }
 @keyframes pulse { 0%,100%{opacity:1;} 50%{opacity:0.4;} }
 
-.toolbar-nav {
-    display:flex;
-    gap:0.5rem;
-    margin-left:auto;
-}
-.toolbar-nav a {
-    color:var(--muted);
-    text-decoration:none;
-    font-size:0.8rem;
-    padding:0.4rem 0.8rem;
-    border-radius:4px;
-    transition:all 0.2s;
-}
-.toolbar-nav a:hover { color:var(--text); background:var(--bg3); }
-.toolbar-nav a.active { color:var(--accent); background:rgba(255,107,53,0.1); }
-
-.main-content {
-    display:grid;
-    grid-template-columns:240px 1fr;
-    overflow:hidden;
-}
-
-.sidebar {
-    background:var(--bg2);
-    border-right:1px solid var(--border);
-    padding:1rem 0;
-    overflow-y:auto;
-}
-.sidebar-section {
-    padding:0.5rem 1rem;
-    font-size:0.7rem;
-    color:var(--muted);
-    text-transform:uppercase;
-    letter-spacing:1px;
-    margin-top:0.5rem;
-}
-.sidebar-item {
-    display:block;
-    padding:0.5rem 1rem 0.5rem 1.5rem;
-    color:var(--text);
-    text-decoration:none;
-    font-size:0.82rem;
-    border-left:2px solid transparent;
-    transition:all 0.15s;
-    cursor:pointer;
-}
-.sidebar-item:hover {
-    background:var(--bg3);
-    border-left-color:var(--accent);
-}
-.sidebar-item.active {
-    background:rgba(255,107,53,0.08);
-    border-left-color:var(--accent);
-    color:var(--accent);
-}
-.sidebar-item .badge {
-    float:right;
-    font-size:0.65rem;
-    padding:0.1rem 0.4rem;
-    border-radius:3px;
-    background:var(--bg3);
-    color:var(--muted);
-}
-
-.editor-area {
-    display:flex;
-    flex-direction:column;
-    overflow:hidden;
-}
-.tab-bar {
-    display:flex;
-    background:var(--bg2);
-    border-bottom:1px solid var(--border);
-    overflow-x:auto;
-}
-.tab {
-    padding:0.6rem 1.2rem;
-    font-size:0.8rem;
-    color:var(--muted);
-    cursor:pointer;
-    border-bottom:2px solid transparent;
-    white-space:nowrap;
-    transition:all 0.15s;
-}
-.tab:hover { color:var(--text); }
-.tab.active { color:var(--accent); border-bottom-color:var(--accent); background:rgba(255,107,53,0.03); }
-
-.iframe-container {
-    flex:1;
-    overflow:hidden;
-}
-.iframe-container iframe {
-    width:100%;
-    height:100%;
-    border:none;
-    background:var(--bg);
-}
-
-.panel-bottom {
-    height:180px;
-    background:var(--bg2);
-    border-top:1px solid var(--border);
-    overflow:auto;
-    padding:0.75rem 1rem;
-    font-family:var(--mono);
-    font-size:0.75rem;
-    color:var(--muted);
-    line-height:1.6;
-}
-.panel-bottom .line-ok { color:var(--success); }
-.panel-bottom .line-warn { color:#fbbf24; }
-.panel-bottom .line-info { color:#60a5fa; }
+pre { background:var(--bg2); padding:1rem; border-radius:6px; font-family:var(--mono); font-size:0.75rem; overflow-x:auto; color:var(--text2); line-height:1.6; border:1px solid var(--border); }
 </style>
 </head>
 <body>
-<div class="ide-container">
-    <div class="toolbar">
-        <div class="toolbar-logo">LATTICE IDE</div>
-        <div class="toolbar-status">KHET-1 OPERATION ACTIVE</div>
-        <div class="toolbar-nav">
-            <a href="#" class="active" onclick="loadReport('starfire_report_final.html')">Report</a>
-            <a href="#" onclick="loadReport('lattice_starfire_report.html')">Swarm Output</a>
-            <a href="forensic_findings.json" target="_blank">JSON</a>
-            <a href="merkle_manifest.json" target="_blank">Merkle</a>
+<div class="header">
+    <div>
+        <div class="logo">LATTICE IDE</div>
+        <div class="logo-sub">KHET-1 Operation • StarFire Forensics</div>
+    </div>
+    <div class="status">MERKLE: 7a2631ab... ✓ VERIFIED • ALIGNMENT: 100%</div>
+</div>
+
+<div class="nav">
+    <button class="nav-btn active" onclick="showPage('overview')">Overview</button>
+    <button class="nav-btn" onclick="showPage('topology')">Topology</button>
+    <button class="nav-btn" onclick="showPage('debate')">Council Debate</button>
+    <button class="nav-btn" onclick="showPage('tracked')">Tracked Drip</button>
+    <button class="nav-btn" onclick="showPage('offenders')">Offenders</button>
+    <button class="nav-btn" onclick="showPage('timeline')">Timeline</button>
+    <button class="nav-btn" onclick="showPage('payloads')">Payloads</button>
+    <button class="nav-btn" onclick="showPage('evidence')">Evidence</button>
+    <button class="nav-btn" onclick="showPage('report')">Full Report</button>
+</div>
+
+<!-- OVERVIEW -->
+<div id="page-overview" class="page active">
+    <div class="metric-grid">
+        <div class="metric"><div class="metric-val">9,528</div><div class="metric-lbl">Packets</div></div>
+        <div class="metric"><div class="metric-val">25.7MB</div><div class="metric-lbl">Evidence</div></div>
+        <div class="metric"><div class="metric-val">2,083</div><div class="metric-lbl">Merkle Leaves</div></div>
+        <div class="metric"><div class="metric-val">100%</div><div class="metric-lbl">Council Alignment</div></div>
+        <div class="metric"><div class="metric-val">BLUE</div><div class="metric-lbl">Prevails</div></div>
+        <div class="metric"><div class="metric-val">BENIGN</div><div class="metric-lbl">Verdict</div></div>
+    </div>
+
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">Executive Summary</div>
+        <div class="fold7-body">
+            <p style="line-height:1.8;color:var(--text2);">
+                The network drip from <code>192.168.2.46</code> (Parrot Linux) is a <strong>Python 3.13 polling script</strong> 
+                using <code>urllib</code> to check services on a Mac Mini (<code>192.168.2.151</code>) every 7.2 seconds.
+                The GNOME component <code>gvfsd-http</code> (PID 181723) acts as proxy, leaking file descriptors in CLOSE-WAIT state.
+            </p>
+            <p style="margin-top:1rem;font-size:1.1rem;font-weight:700;color:var(--accent);">
+                Classification: AUTOMATED POLLING / LOCAL SERVICE MESH
+            </p>
         </div>
     </div>
 
-    <div class="main-content">
-        <div class="sidebar">
-            <div class="sidebar-section">Evidence Files</div>
-            <a class="sidebar-item" onclick="loadReport('starfire_report_final.html')">
-                StarFire Report <span class="badge">FINAL</span>
-            </a>
-            <a class="sidebar-item" onclick="loadReport('lattice_starfire_report.html')">
-                Swarm Analysis <span class="badge">RAW</span>
-            </a>
-
-            <div class="sidebar-section">Source Data</div>
-            <a class="sidebar-item">ppppppppppppppp.pcapng <span class="badge">13MB</span></a>
-            <a class="sidebar-item">2.pcapng <span class="badge">12.7MB</span></a>
-            <a class="sidebar-item">1.pcapng <span class="badge">1.3MB</span></a>
-
-            <div class="sidebar-section">Analysis Artifacts</div>
-            <a class="sidebar-item" href="forensic_findings.json" target="_blank">forensic_findings.json</a>
-            <a class="sidebar-item" href="lattice_report.json" target="_blank">lattice_report.json</a>
-            <a class="sidebar-item" href="merkle_manifest.json" target="_blank">merkle_manifest.json</a>
-
-            <div class="sidebar-section">Tools</div>
-            <a class="sidebar-item" href="drip_trace.sh" target="_blank">drip_trace.sh <span class="badge">RUN LOCAL</span></a>
-
-            <div class="sidebar-section">Integrity</div>
-            <div style="padding:0.5rem 1.5rem;font-family:var(--mono);font-size:0.65rem;color:var(--success);line-height:1.8;">
-                ROOT: 98f1654771...<br>
-                LEAVES: 2,066<br>
-                STATUS: VERIFIED ✓
-            </div>
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">Drip Explanation</div>
+        <div class="fold7-body">
+            <pre>
+SOURCE:  192.168.2.46 (your Parrot box)
+PROCESS: Python 3.13 → urllib → GIO → DBus → gvfsd-http (PID 181723)
+TARGET:  192.168.2.151 (Mac Mini "crd-mac-mini-bombshell")
+PORTS:   7734 (/status → "online"), 8082 (/api/notes), 8083 (cross-subnet)
+PATTERN: time.sleep(7) loop → 7.2s beacon interval (σ=1.28s)
+VERDICT: YOUR OWN monitoring script polling YOUR OWN infrastructure
+            </pre>
         </div>
+    </div>
+</div>
 
-        <div class="editor-area">
-            <div class="tab-bar">
-                <div class="tab active" onclick="loadReport('starfire_report_final.html')">starfire_report_final.html</div>
-                <div class="tab" onclick="loadReport('lattice_starfire_report.html')">lattice_starfire_report.html</div>
+<!-- TOPOLOGY -->
+<div id="page-topology" class="page">
+    <div class="card">
+        <div class="card-title">Network Topology Graph</div>
+        <svg class="topo-graph" viewBox="0 0 800 450">
+            <!-- Edges -->
+            <line x1="200" y1="200" x2="550" y2="150" class="topo-edge-active"/>
+            <line x1="200" y1="200" x2="550" y2="280" class="topo-edge-active"/>
+            <line x1="200" y1="200" x2="200" y2="380" class="topo-edge"/>
+            <line x1="200" y1="200" x2="550" y2="400" class="topo-edge"/>
+            <line x1="550" y1="150" x2="720" y2="80" class="topo-edge"/>
+
+            <!-- Node: Your Parrot Box (SOURCE) -->
+            <g class="topo-node" transform="translate(200,200)">
+                <circle r="24" fill="#ff6b35" opacity="0.9"/>
+                <circle r="30" fill="none" stroke="#ff6b35" stroke-width="1" opacity="0.4" stroke-dasharray="3,2">
+                    <animate attributeName="r" values="30;35;30" dur="2s" repeatCount="indefinite"/>
+                </circle>
+                <text class="topo-label" dy="-35">192.168.2.46</text>
+                <text class="topo-sublabel" dy="-22">PARROT (SOURCE)</text>
+                <text y="4" text-anchor="middle" font-size="10" fill="white" font-weight="700">SRC</text>
+            </g>
+
+            <!-- Node: Mac Mini -->
+            <g class="topo-node" transform="translate(550,150)">
+                <circle r="22" fill="#60a5fa" opacity="0.9"/>
+                <text class="topo-label" dy="-30">192.168.2.151</text>
+                <text class="topo-sublabel" dy="-17">MAC MINI</text>
+                <text y="4" text-anchor="middle" font-size="9" fill="white" font-weight="600">:7734</text>
+                <text y="14" text-anchor="middle" font-size="9" fill="white" font-weight="600">:8082</text>
+            </g>
+
+            <!-- Node: Cross-subnet -->
+            <g class="topo-node" transform="translate(550,280)">
+                <circle r="18" fill="#fbbf24" opacity="0.9"/>
+                <text class="topo-label" dy="-25">192.168.1.46</text>
+                <text class="topo-sublabel" dy="-12">CROSS-SUBNET</text>
+                <text y="4" text-anchor="middle" font-size="9" fill="white" font-weight="600">:8083</text>
+            </g>
+
+            <!-- Node: Gateway -->
+            <g class="topo-node" transform="translate(200,380)">
+                <circle r="16" fill="#4ade80" opacity="0.8"/>
+                <text class="topo-label" dy="-22">192.168.2.1</text>
+                <text class="topo-sublabel" dy="-10">GATEWAY/DNS</text>
+                <text y="4" text-anchor="middle" font-size="9" fill="white">GW</text>
+            </g>
+
+            <!-- Node: External -->
+            <g class="topo-node" transform="translate(550,400)">
+                <circle r="16" fill="#a78bfa" opacity="0.8"/>
+                <text class="topo-label" dy="-22">143.198.246.99</text>
+                <text class="topo-sublabel" dy="-10">apackets.com (DO)</text>
+                <text y="4" text-anchor="middle" font-size="9" fill="white">EXT</text>
+            </g>
+
+            <!-- Node: Cursor -->
+            <g class="topo-node" transform="translate(720,80)">
+                <circle r="14" fill="#a78bfa" opacity="0.7"/>
+                <text class="topo-label" dy="-18">api2.cursor.sh</text>
+                <text class="topo-sublabel" dy="-6">CURSOR IDE</text>
+            </g>
+
+            <!-- Edge labels -->
+            <text x="370" y="165" font-size="9" fill="#ff6b35" font-family="monospace">GET /status q7.2s</text>
+            <text x="370" y="180" font-size="9" fill="#ff6b35" font-family="monospace">GET /api/notes q18s</text>
+            <text x="370" y="255" font-size="8" fill="#fbbf24" font-family="monospace">:8083 (104 pkts)</text>
+            <text x="130" y="300" font-size="8" fill="#4ade80" font-family="monospace">DNS :53</text>
+            <text x="370" y="320" font-size="8" fill="#a78bfa" font-family="monospace">HTTPS :443</text>
+
+            <!-- Legend -->
+            <rect x="20" y="410" width="10" height="10" fill="#ff6b35" rx="2"/>
+            <text x="35" y="419" font-size="9" fill="#a0a0b8">Source (drip origin)</text>
+            <rect x="160" y="410" width="10" height="10" fill="#60a5fa" rx="2"/>
+            <text x="175" y="419" font-size="9" fill="#a0a0b8">LAN Target</text>
+            <rect x="280" y="410" width="10" height="10" fill="#fbbf24" rx="2"/>
+            <text x="295" y="419" font-size="9" fill="#a0a0b8">Cross-Subnet</text>
+            <rect x="400" y="410" width="10" height="10" fill="#a78bfa" rx="2"/>
+            <text x="415" y="419" font-size="9" fill="#a0a0b8">External</text>
+            <line x1="520" y1="415" x2="560" y2="415" stroke="#ff6b35" stroke-width="2" stroke-dasharray="4,3"/>
+            <text x="565" y="419" font-size="9" fill="#a0a0b8">Active drip flow</text>
+        </svg>
+    </div>
+</div>
+
+<!-- COUNCIL DEBATE -->
+<div id="page-debate" class="page">
+    <div class="card">
+        <div class="card-title">Council Debate — Resolved</div>
+        <p style="color:var(--text2);margin-bottom:1rem;font-size:0.85rem;">Alignment: <span style="color:var(--success);font-weight:700;">100%</span> — All contested findings resolved.</p>
+    </div>
+
+    <div class="debate">
+        <div class="fold7">
+            <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                Debate #1: Port Usage Pattern <span class="badge badge-green" style="margin-left:auto;margin-right:1rem;">BLUE PREVAILS</span>
             </div>
-            <div class="iframe-container">
-                <iframe id="report-frame" src="starfire_report_final.html"></iframe>
-            </div>
-            <div class="panel-bottom">
-                <div class="line-ok">[LATTICE] Operation complete. All tokens earned their keep.</div>
-                <div class="line-info">[MERKLE] Root: 98f16547712914e95d1b9f73d5abe6f7a119b250b71071692220ddfe57b72503</div>
-                <div class="line-info">[MERKLE] Leaves: 2,066 | All verified</div>
-                <div class="line-ok">[CRYSTALLINE LATTICE] Evidence sealed. Diamond-hand enforced.</div>
-                <div class="line-info">[PARSE] 9,528 packets across 3 evidence files</div>
-                <div class="line-info">[COUNCIL-α] 492 red outposts → 1 castle (PORT_HOPPING)</div>
-                <div class="line-info">[COUNCIL-β] 491 blue outposts → 3 castles (HTTPS, INFRA, LOW_VOL)</div>
-                <div class="line-ok">[FINAL MAKER] Blue prevails. Drip = local polling loop.</div>
-                <div class="line-warn">[OFFENDER] gvfsd-http PID 181723 — CLOSE-WAIT FD leak on :7734, :8082</div>
-                <div class="line-info">[SOCRATIC] Python 3.13 → urllib → GIO → DBus → gvfsd-http → Mac Mini</div>
-                <div class="line-ok">[VERDICT] AUTOMATED POLLING / LOCAL SERVICE MESH — BENIGN</div>
-                <div class="line-info">[RAYON] 4 workers | 6.4x parallelism | 10 tasks | 0 failures</div>
-                <div class="line-ok">[STARFIRE] Report served. All systems nominal.</div>
+            <div class="fold7-body">
+                <div class="debate-side debate-red">
+                    <div class="debate-label" style="color:var(--danger);">RED COUNCIL (↺ Attribution) — 50% confidence</div>
+                    <strong>8 non-standard ports: port-hopping evasion or tunneling</strong>
+                    <p style="color:var(--text2);font-size:0.83rem;margin-top:0.4rem;">
+                        Ports 8082, 8083, 7734, 7778, 42706, 57590, 44244, 52226 in active use.
+                        Multiple non-standard ports at this volume suggests deliberate evasion or multi-channel tunneling.
+                    </p>
+                </div>
+                <div class="debate-side debate-blue">
+                    <div class="debate-label" style="color:var(--info);">BLUE COUNCIL (↻ Innocence) — 95% confidence</div>
+                    <strong>Infrastructure traffic: DNS/NTP required for basic network operation</strong>
+                    <p style="color:var(--text2);font-size:0.83rem;margin-top:0.4rem;">
+                        257 packets to infrastructure services. High-numbered ports (42706, 57590, etc.) are TCP ephemeral 
+                        source ports allocated by kernel. Fixed ports (7734, 8082, 8083) serve HTTP with valid responses.
+                        User-Agent identifies as Python-urllib/3.13. Developer workstation behavior.
+                    </p>
+                </div>
+                <div class="debate-verdict">
+                    <div class="debate-label" style="color:var(--success);">FINAL MAKER: BLUE PREVAILS</div>
+                    <p style="font-size:0.85rem;">
+                        Red confidence 0.50 vs Blue 0.95. Blue explanation adequate — benign behavior accounts for observation.
+                        The "port hopping" is definitively TCP ephemeral source port rotation + custom dev services.
+                        Cleartext HTTP responses ("online", "crd-mac-mini-bombshell") confirm non-malicious intent.
+                    </p>
+                </div>
             </div>
         </div>
     </div>
 </div>
 
+<!-- TRACKED DRIP ITEMS -->
+<div id="page-tracked" class="page">
+    <div class="card">
+        <div class="card-title">Tracked Drip Items</div>
+        <p style="color:var(--text2);margin-bottom:1rem;font-size:0.85rem;">All observed outbound flows from source 192.168.2.46, classified and tracked.</p>
+    </div>
+
+    <div class="tracked-item">
+        <div class="tracked-dot resolved"></div>
+        <div>
+            <strong>GET /status → 192.168.2.151:7734</strong>
+            <p style="color:var(--text2);font-size:0.8rem;">Interval: 7.2s (σ=1.28s) | Response: "online" | UA: Python-urllib/3.13</p>
+            <p style="color:var(--success);font-size:0.75rem;margin-top:0.3rem;">RESOLVED: Health-check polling loop (your monitoring script)</p>
+        </div>
+        <span class="badge badge-green" style="margin-left:auto;">BENIGN</span>
+    </div>
+
+    <div class="tracked-item">
+        <div class="tracked-dot resolved"></div>
+        <div>
+            <strong>GET /api/notes → 192.168.2.151:8082</strong>
+            <p style="color:var(--text2);font-size:0.8rem;">Interval: 18.1s (σ=6.38s) | Response: "crd-mac-mini-bombshell-2026-03-22"</p>
+            <p style="color:var(--success);font-size:0.75rem;margin-top:0.3rem;">RESOLVED: Data sync / note pull from Mac Mini API</p>
+        </div>
+        <span class="badge badge-green" style="margin-left:auto;">BENIGN</span>
+    </div>
+
+    <div class="tracked-item">
+        <div class="tracked-dot monitoring"></div>
+        <div>
+            <strong>TCP → 192.168.1.46:8083 (cross-subnet)</strong>
+            <p style="color:var(--text2);font-size:0.8rem;">104 packets | Rotating ephemeral source ports | Different subnet than primary LAN</p>
+            <p style="color:var(--warning);font-size:0.75rem;margin-top:0.3rem;">MONITORING: Same pattern as above but cross-subnet target needs confirmation</p>
+        </div>
+        <span class="badge badge-yellow" style="margin-left:auto;">MONITOR</span>
+    </div>
+
+    <div class="tracked-item">
+        <div class="tracked-dot resolved"></div>
+        <div>
+            <strong>HTTPS → 143.198.246.99 (apackets.com)</strong>
+            <p style="color:var(--text2);font-size:0.8rem;">2.3 MB | TLS SNI confirmed | DigitalOcean IP | Packet analysis website</p>
+            <p style="color:var(--success);font-size:0.75rem;margin-top:0.3rem;">RESOLVED: Browser visit to network analysis tool</p>
+        </div>
+        <span class="badge badge-green" style="margin-left:auto;">BENIGN</span>
+    </div>
+
+    <div class="tracked-item">
+        <div class="tracked-dot resolved"></div>
+        <div>
+            <strong>HTTPS → api2.cursor.sh (multiple IPs)</strong>
+            <p style="color:var(--text2);font-size:0.8rem;">TLS SNI: api2.cursor.sh | Multiple AWS endpoints | IDE backend</p>
+            <p style="color:var(--success);font-size:0.75rem;margin-top:0.3rem;">RESOLVED: Cursor IDE telemetry and API calls</p>
+        </div>
+        <span class="badge badge-green" style="margin-left:auto;">BENIGN</span>
+    </div>
+
+    <div class="tracked-item">
+        <div class="tracked-dot resolved"></div>
+        <div>
+            <strong>HTTPS → duckduckgo.com, google.com</strong>
+            <p style="color:var(--text2);font-size:0.8rem;">Standard browser traffic | QUIC + TLS | Normal search activity</p>
+            <p style="color:var(--success);font-size:0.75rem;margin-top:0.3rem;">RESOLVED: Web browsing</p>
+        </div>
+        <span class="badge badge-green" style="margin-left:auto;">BENIGN</span>
+    </div>
+
+    <div class="tracked-item">
+        <div class="tracked-dot resolved"></div>
+        <div>
+            <strong>DNS → 192.168.2.1:53</strong>
+            <p style="color:var(--text2);font-size:0.8rem;">257 queries | Top: apackets.com(20x), google.com(16x), duckduckgo(16x)</p>
+            <p style="color:var(--success);font-size:0.75rem;margin-top:0.3rem;">RESOLVED: Standard name resolution via gateway</p>
+        </div>
+        <span class="badge badge-green" style="margin-left:auto;">BENIGN</span>
+    </div>
+
+    <div class="tracked-item">
+        <div class="tracked-dot active"></div>
+        <div>
+            <strong>gvfsd-http CLOSE-WAIT FD leak</strong>
+            <p style="color:var(--text2);font-size:0.8rem;">PID 181723 | 3 leaked sockets on :8082 and :7734 | Known gvfs bug</p>
+            <p style="color:var(--accent);font-size:0.75rem;margin-top:0.3rem;">ACTIVE: File descriptors accumulating. Fix: kill 181723 (auto-respawns clean)</p>
+        </div>
+        <span class="badge badge-red" style="margin-left:auto;">FD LEAK</span>
+    </div>
+</div>
+
+<!-- OFFENDERS -->
+<div id="page-offenders" class="page">
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">Root Process: gvfsd-http</div>
+        <div class="fold7-body">
+            <table>
+                <tr><th>Attribute</th><th>Value</th></tr>
+                <tr><td>PID</td><td>181723</td></tr>
+                <tr><td>Binary</td><td>/usr/libexec/gvfsd-http</td></tr>
+                <tr><td>Trigger</td><td>Python 3.13 urllib via GIO/DBus activation</td></tr>
+                <tr><td>User-Agent</td><td>Python-urllib/3.13</td></tr>
+                <tr><td>Socket State</td><td>CLOSE-WAIT (FD leak)</td></tr>
+                <tr><td>Connections</td><td>127.0.0.1:52314→:8082, 127.0.0.1:47016→:7734, 127.0.0.1:52310→:8082</td></tr>
+            </table>
+        </div>
+    </div>
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">Port Map</div>
+        <div class="fold7-body">
+            <table>
+                <tr><th>Port</th><th>Service</th><th>Host</th><th>Response</th></tr>
+                <tr><td>7734</td><td>Health-check</td><td>Mac Mini (192.168.2.151)</td><td>"online"</td></tr>
+                <tr><td>8082</td><td>Notes API</td><td>Mac Mini (192.168.2.151)</td><td>"crd-mac-mini-bombshell-2026-03-22"</td></tr>
+                <tr><td>8083</td><td>Unknown</td><td>192.168.1.46 (cross-subnet)</td><td>—</td></tr>
+                <tr><td>7778</td><td>Unknown</td><td>Mac Mini</td><td>—</td></tr>
+                <tr><td>443</td><td>HTTPS</td><td>Multiple external</td><td>Encrypted</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- TIMELINE -->
+<div id="page-timeline" class="page">
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">Capture Files</div>
+        <div class="fold7-body">
+            <table>
+                <tr><th>File</th><th>Start</th><th>Duration</th><th>Packets</th><th>Key Activity</th></tr>
+                <tr><td>1.pcapng</td><td>06:57:40</td><td>14.7s</td><td>280</td><td>Initial — Cursor + Mac Mini</td></tr>
+                <tr><td>2.pcapng</td><td>07:00:23</td><td>2m31s</td><td>2,925</td><td>Sustained polling + Cursor API</td></tr>
+                <tr><td>ppppp...pcapng</td><td>07:06:12</td><td>4m25s</td><td>6,323</td><td>Full session — QUIC, polling, browser</td></tr>
+            </table>
+        </div>
+    </div>
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">Beacon Timing</div>
+        <div class="fold7-body">
+            <table>
+                <tr><th>Target</th><th>Interval</th><th>σ</th><th>Count</th><th>Pattern</th></tr>
+                <tr><td>:7734/status</td><td>7.2s</td><td>1.28s</td><td>18</td><td>time.sleep(7) + RTT</td></tr>
+                <tr><td>:8082/api/notes</td><td>18.1s</td><td>6.38s</td><td>8</td><td>~2.5x status interval</td></tr>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- PAYLOADS -->
+<div id="page-payloads" class="page">
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">HTTP Payloads</div>
+        <div class="fold7-body">
+            <pre>GET /status HTTP/1.1
+Host: 192.168.2.151:7734
+User-Agent: Python-urllib/3.13
+
+← HTTP/1.1 200 OK
+← Content-Type: application/json
+← "online"</pre>
+            <pre style="margin-top:0.75rem;">GET /api/notes HTTP/1.1
+Host: 192.168.2.151:8082
+User-Agent: Python-urllib/3.13
+
+← HTTP/1.1 200 OK
+← Content-Type: application/json
+← "crd-mac-mini-bombshell-2026-03-22"</pre>
+        </div>
+    </div>
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">TLS SNI (Encrypted Destinations)</div>
+        <div class="fold7-body">
+            <pre>apackets.com (143.198.246.99)        — Packet analysis tool
+downloads.claude.ai (35.190.46.17)   — Claude AI
+api2.cursor.sh (52.44.119.122)       — Cursor IDE backend
+duckduckgo.com (52.250.41.2)         — Search engine
+push.services.mozilla.com            — Firefox notifications</pre>
+        </div>
+    </div>
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">Top DNS Queries</div>
+        <div class="fold7-body">
+            <pre>apackets.com                    20x
+www.google.com                  16x
+duckduckgo.com                  16x
+outlook.office365.com           14x
+signaler-pa.clients6.google     14x
+mail.google.com                 10x
+accounts.google.com             10x
+login.microsoftonline.com       10x</pre>
+        </div>
+    </div>
+</div>
+
+<!-- EVIDENCE -->
+<div id="page-evidence" class="page">
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">Merkle Tree Integrity</div>
+        <div class="fold7-body">
+            <pre>ROOT:   7a2631ab7394377a7997f6ddad26c32812101c2f1f6f37916a65f744800cbcaf
+LEAVES: 2,083
+STATUS: ALL VERIFIED ✓
+DIAMOND-HAND: Evidence read-only enforced</pre>
+            <table style="margin-top:1rem;">
+                <tr><th>File</th><th>Size</th><th>SHA-256</th></tr>
+                <tr><td>ppppppppppppppp.pcapng</td><td>12.98 MB</td><td style="font-size:0.7rem;">0e0764b87a49d5c2b66aa245c8f8ca90...</td></tr>
+                <tr><td>1.pcapng</td><td>1.29 MB</td><td style="font-size:0.7rem;">035d86fcc6fcff58e59845df7af94ae0...</td></tr>
+                <tr><td>2.pcapng</td><td>12.69 MB</td><td style="font-size:0.7rem;">b6ea0520509be6081f1ef2c747ad3021...</td></tr>
+            </table>
+        </div>
+    </div>
+    <div class="fold7">
+        <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">Artifacts</div>
+        <div class="fold7-body">
+            <p style="font-size:0.85rem;line-height:2;">
+                <a href="forensic_findings.json" style="color:var(--info);">forensic_findings.json</a> — Full findings<br>
+                <a href="lattice_report.json" style="color:var(--info);">lattice_report.json</a> — Swarm output<br>
+                <a href="merkle_manifest.json" style="color:var(--info);">merkle_manifest.json</a> — Merkle tree<br>
+                <a href="drip_trace.sh" style="color:var(--info);">drip_trace.sh</a> — Local box trace script<br>
+                <a href="starfire_report_final.html" style="color:var(--info);">starfire_report_final.html</a> — Legacy report
+            </p>
+        </div>
+    </div>
+</div>
+
+<!-- FULL REPORT EMBED -->
+<div id="page-report" class="page">
+    <iframe src="starfire_report_final.html" style="width:100%;height:calc(100vh - 120px);border:none;border-radius:8px;"></iframe>
+</div>
+
 <script>
-function loadReport(file) {
-    document.getElementById('report-frame').src = file;
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.sidebar-item').forEach(t => t.classList.remove('active'));
+function showPage(id) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('page-' + id).classList.add('active');
     event.target.classList.add('active');
 }
 </script>
