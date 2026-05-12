@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StarFire Forensics Report</title>
+<style>
+:root {
+    --bg-primary: #0a0a0f;
+    --bg-secondary: #12121a;
+    --bg-card: #1a1a2e;
+    --bg-card-hover: #222240;
+    --accent: #ff6b35;
+    --accent-glow: rgba(255, 107, 53, 0.3);
+    --text-primary: #e8e8f0;
+    --text-secondary: #a0a0b8;
+    --text-muted: #6a6a80;
+    --border: #2a2a40;
+    --success: #4ade80;
+    --warning: #fbbf24;
+    --danger: #f87171;
+    --info: #60a5fa;
+    --critical: #dc2626;
+    --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+    --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    font-family: var(--font-sans);
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    min-height: 100vh;
+    line-height: 1.6;
+}
+
+.header {
+    background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a0a20 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 1.5rem 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), #ff9f6b);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.5px;
+}
+
+.logo-sub {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.lattice-badge {
+    background: var(--bg-card);
+    border: 1px solid var(--success);
+    border-radius: 6px;
+    padding: 0.4rem 0.8rem;
+    font-family: var(--font-mono);
+    font-size: 0.7rem;
+    color: var(--success);
+}
+
+.council-status {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+.council-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    animation: pulse 2s infinite;
+}
+
+.council-dot.alpha { background: var(--accent); }
+.council-dot.beta { background: var(--info); }
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.tabs {
+    display: flex;
+    background: var(--bg-secondary);
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    padding: 0 1rem;
+}
+
+.tab {
+    padding: 0.9rem 1.4rem;
+    cursor: pointer;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+
+.tab:hover { color: var(--text-primary); background: var(--bg-card); }
+.tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+    background: rgba(255, 107, 53, 0.05);
+}
+
+.tab-content { display: none; padding: 2rem; }
+.tab-content.active { display: block; }
+
+.card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+}
+
+.card-title {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.metric-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.metric {
+    background: var(--bg-secondary);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+}
+
+.metric-value {
+    font-size: 1.8rem;
+    font-weight: 700;
+    font-family: var(--font-mono);
+    color: var(--accent);
+}
+
+.metric-label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-top: 0.25rem;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+}
+
+th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: var(--bg-secondary);
+    color: var(--text-muted);
+    font-weight: 600;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    border-bottom: 1px solid var(--border);
+}
+
+td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+}
+
+tr:hover { background: var(--bg-card-hover); }
+
+.badge {
+    display: inline-block;
+    padding: 0.2rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-critical { background: rgba(220, 38, 38, 0.2); color: var(--critical); border: 1px solid var(--critical); }
+.badge-high { background: rgba(248, 113, 113, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+.badge-warning { background: rgba(251, 191, 36, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+.badge-info { background: rgba(96, 165, 250, 0.2); color: var(--info); border: 1px solid var(--info); }
+.badge-success { background: rgba(74, 222, 128, 0.2); color: var(--success); border: 1px solid var(--success); }
+
+.debate-entry {
+    background: var(--bg-secondary);
+    border-left: 3px solid var(--accent);
+    padding: 1rem 1.5rem;
+    margin-bottom: 1rem;
+    border-radius: 0 6px 6px 0;
+}
+
+.debate-alpha {
+    border-left-color: var(--accent);
+}
+
+.debate-beta {
+    border-left-color: var(--info);
+}
+
+.debate-resolution {
+    border-left-color: var(--success);
+    background: rgba(74, 222, 128, 0.05);
+}
+
+.debate-label {
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 0.5rem;
+}
+
+.debate-label.alpha { color: var(--accent); }
+.debate-label.beta { color: var(--info); }
+.debate-label.resolution { color: var(--success); }
+
+.socratic-step {
+    position: relative;
+    padding-left: 2rem;
+    margin-bottom: 1.5rem;
+}
+
+.socratic-step::before {
+    content: '?';
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 1.5rem;
+    height: 1.5rem;
+    background: var(--accent);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.8rem;
+    color: white;
+}
+
+.socratic-step .question {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+}
+
+.socratic-step .answer {
+    color: var(--text-secondary);
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    background: var(--bg-secondary);
+    padding: 0.75rem;
+    border-radius: 4px;
+}
+
+.process-chain {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+}
+
+.process-node {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 0.3rem 0.6rem;
+}
+
+.process-arrow {
+    color: var(--text-muted);
+}
+
+.payload-block {
+    background: #0d1117;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 1rem;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-secondary);
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.verdict-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    padding: 1rem;
+    background: var(--bg-secondary);
+    border-radius: 6px;
+    margin-bottom: 0.75rem;
+    border: 1px solid var(--border);
+}
+
+.verdict-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+}
+
+.chart-container {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.chart-container img {
+    width: 100%;
+    border-radius: 4px;
+}
+
+footer {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+    <div class="header-left">
+        <div>
+            <div class="logo">STARFIRE</div>
+            <div class="logo-sub">Forensics Report</div>
+        </div>
+        <div class="council-status">
+            <span class="council-dot alpha"></span> Council-&alpha;
+            <span class="council-dot beta"></span> Council-&beta;
+            <span>| Alignment: 0%</span>
+        </div>
+    </div>
+    <div>
+        <div class="lattice-badge">LATTICE 98f16547712914e9</div>
+    </div>
+</div>
+
+<div class="tabs">
+    <div class="tab active" onclick="switchTab('overview')">Overview</div>
+    <div class="tab" onclick="switchTab('offenders')">Top Offenders</div>
+    <div class="tab" onclick="switchTab('debate')">Council Debate</div>
+    <div class="tab" onclick="switchTab('drip')">Drip Trace</div>
+    <div class="tab" onclick="switchTab('timeline')">Timeline</div>
+    <div class="tab" onclick="switchTab('payloads')">Payloads</div>
+    <div class="tab" onclick="switchTab('processes')">Processes</div>
+    <div class="tab" onclick="switchTab('evidence')">Evidence Chain</div>
+</div>
+
+<div id="tab-overview" class="tab-content active">
+    
+    <div class="metric-grid">
+        <div class="metric"><div class="metric-value">10,653</div><div class="metric-label">Packets Analyzed</div></div>
+        <div class="metric"><div class="metric-value">41690.1 KB</div><div class="metric-label">Total Volume</div></div>
+        <div class="metric"><div class="metric-value">810380.8s</div><div class="metric-label">Duration</div></div>
+        <div class="metric"><div class="metric-value">594</div><div class="metric-label">Red Outposts</div></div>
+        <div class="metric"><div class="metric-value">1462</div><div class="metric-label">Blue Outposts</div></div>
+        <div class="metric"><div class="metric-value">2066</div><div class="metric-label">Merkle Leaves</div></div>
+    </div>
+    <div class="card">
+        <div class="card-title">Operation Summary</div>
+        <p style="color:var(--text-secondary);">Drip classified as: PORT_HOPPING / TUNNELING. 0 debate points resolved. Merkle-verified across 2066 evidence nodes.</p>
+    </div>
+    <div class="card">
+        <div class="card-title">Drip Classification</div>
+        <p style="font-size:1.2rem;font-weight:700;color:var(--accent);">PORT_HOPPING / TUNNELING</p>
+    </div>
+    <div class="card">
+        <div class="card-title">Rayon Parallel Efficiency</div>
+        <p style="color:var(--text-secondary);font-family:var(--font-mono);font-size:0.85rem;">
+            Workers: 4 | 
+            Tasks: 10 | 
+            Parallelism: 6.4x
+        </p>
+    </div>
+    
+</div>
+
+<div id="tab-offenders" class="tab-content">
+    <div class='card'><div class='card-title'>Final Castles (Merged Verdicts)</div>
+        <div class="verdict-card">
+            <div><span class="badge badge-warning">MEDIUM</span></div>
+            <div>
+                <strong>Broad unusual port usage</strong>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.3rem;">8 non-standard ports in use. Top: 8083.0, 42706.0, 57590.0, 44244.0, 52226.0. May indicate port-hopping evasion or tunneling.</p>
+                <p style="color:var(--text-muted);font-size:0.75rem;">Origin: red | Confidence: 50%</p>
+            </div>
+        </div>
+        <div class="verdict-card">
+            <div><span class="badge badge-success">INFO</span></div>
+            <div>
+                <strong>HTTPS-dominant traffic profile</strong>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.3rem;">72% of outbound is HTTPS. Consistent with normal browser/application behavior. Encrypted channels are expected for modern apps.</p>
+                <p style="color:var(--text-muted);font-size:0.75rem;">Origin: blue | Confidence: 72%</p>
+            </div>
+        </div>
+        <div class="verdict-card">
+            <div><span class="badge badge-success">INFO</span></div>
+            <div>
+                <strong>Infrastructure traffic (DNS/NTP/DHCP)</strong>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.3rem;">257 packets to infrastructure services. Required for basic network operation (name resolution, time sync).</p>
+                <p style="color:var(--text-muted);font-size:0.75rem;">Origin: blue | Confidence: 95%</p>
+            </div>
+        </div>
+        <div class="verdict-card">
+            <div><span class="badge badge-success">INFO</span></div>
+            <div>
+                <strong>Low bandwidth utilization</strong>
+                <p style="color:var(--text-secondary);font-size:0.85rem;margin-top:0.3rem;">Average outbound rate: 0 B/s (0.00 KB/s). Well below thresholds for active exfiltration. Consistent with idle system telemetry.</p>
+                <p style="color:var(--text-muted);font-size:0.75rem;">Origin: blue | Confidence: 80%</p>
+            </div>
+        </div></div>
+</div>
+
+<div id="tab-debate" class="tab-content">
+    <div class='card'><div class='card-title'>Council Debate — High Signal</div><p style='color:var(--text-muted);'>Councils aligned — no contested findings.</p></div>
+</div>
+
+<div id="tab-drip" class="tab-content">
+    
+    <div class="card">
+        <div class="card-title">Network Drip Analysis</div>
+        <div class="socratic-step">
+            <div class="question">What is the drip?</div>
+            <div class="answer">PORT_HOPPING / TUNNELING</div>
+        </div>
+        <div class="socratic-step">
+            <div class="question">Source process?</div>
+            <div class="answer">Requires live process correlation</div>
+        </div>
+        <div class="socratic-step">
+            <div class="question">Red Council assessment?</div>
+            <div class="answer">1 castles built. Key findings: Broad unusual port usage</div>
+        </div>
+        <div class="socratic-step">
+            <div class="question">Blue Council assessment?</div>
+            <div class="answer">3 castles built. Key findings: HTTPS-dominant traffic profile; Infrastructure traffic (DNS/NTP/DHCP); Low bandwidth utilization</div>
+        </div>
+    </div>
+</div>
+
+<div id="tab-timeline" class="tab-content">
+    <div class='card'><div class='card-title'>Traffic Profile</div><table><thead><tr><th>Protocol</th><th>Count</th><th>Share</th></tr></thead><tbody><tr><td>TCP</td><td>6009</td><td>56.4%</td></tr><tr><td>TLS</td><td>2286</td><td>21.5%</td></tr><tr><td>QUIC</td><td>1252</td><td>11.8%</td></tr><tr><td>DNS</td><td>523</td><td>4.9%</td></tr><tr><td>DATA</td><td>375</td><td>3.5%</td></tr><tr><td>HTTP</td><td>58</td><td>0.5%</td></tr><tr><td>JSON</td><td>52</td><td>0.5%</td></tr><tr><td>ICMPV6</td><td>48</td><td>0.5%</td></tr></tbody></table></div>
+</div>
+
+<div id="tab-payloads" class="tab-content">
+    <div class='card'><div class='card-title'>Payload Samples</div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #2 | nan → nan:50858.0 | 83B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">T����y���I�m�_��2�T,��j*o�+�q����=�IJ&:�oݽ3Cq�cm=U	��͕���?Op����A��</div>
+        </div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #3 | nan → nan:443.0 | 32B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">g��3�����8�ls-��$�{�H�iɼ</div>
+        </div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #4 | nan → nan:50858.0 | 83B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">B���x���b8k"�n���W7K�sz�|\'��+�+[���Ԕ��A
+�b���/��~5W�+�#-��if^�|ӓb�</div>
+        </div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #5 | nan → nan:50858.0 | 27B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">A��z��w��_^�a�� ��,7�9�</div>
+        </div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #6 | nan → nan:443.0 | 32B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">z��3���X'�2�s'����h�[|�[�?Q��</div>
+        </div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #7 | nan → nan:443.0 | 400B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">Y��3���c�������嫩V[��.䶶����vp��?ݭ��P�=�L"�b�8�F��;I�/���P\y� ��h|��p��B%*�B�����le��M-T<Ar�N�����o�n����ޭ�
+�:���YD</div>
+        </div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #8 | nan → nan:50858.0 | 36B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">X��1F��1��y%ɮ���1C�J��h�7t�d�U</div>
+        </div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #9 | nan → nan:443.0 | 32B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">~��3���֬%���w��������@D�</div>
+        </div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #10 | nan → nan:50858.0 | 91B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">\��������	Wg>��tW@�#���b�-���ugT�������d��"�A�Ӕt�*}AQi�K� ,ù��t���ɚU//x�t�</div>
+        </div>
+        <div style="margin-bottom:0.75rem;padding:0.75rem;background:var(--bg-secondary);border-radius:4px;">
+            <span style="font-family:var(--font-mono);font-size:0.75rem;color:var(--text-muted);">
+                #11 | nan → nan:50858.0 | 26B
+            </span>
+            <div class="payload-block" style="margin-top:0.5rem;">U��x)�=0bbN��?�%�^���Ӥ</div>
+        </div></div>
+</div>
+
+<div id="tab-processes" class="tab-content">
+    <div class='card'><div class='card-title'>Local Process State</div><p style='color:var(--text-muted);'>Process data unavailable.</p></div>
+</div>
+
+<div id="tab-evidence" class="tab-content">
+    <div class="card">
+        <div class="card-title">Crystalline Lattice — Evidence Integrity</div>
+        <div class="metric-grid">
+            <div class="metric">
+                <div class="metric-value">2066</div>
+                <div class="metric-label">Evidence Items</div>
+            </div>
+            <div class="metric">
+                <div class="metric-value" style="font-size:1rem;">98f16547712914e9</div>
+                <div class="metric-label">Lattice Hash (SHA-256)</div>
+            </div>
+        </div>
+        <p style="color: var(--success); font-size: 0.85rem;">
+            &#x2714; All evidence hashes verified. Chain of custody intact. Diamond-hand protocol enforced.
+        </p>
+    </div>
+    
+    <div class="card">
+        <div class="card-title">Merkle Tree</div>
+        <table>
+            <thead><tr><th>#</th><th>Label</th><th>Hash (SHA-256)</th></tr></thead>
+            <tbody>
+            <tr><td>0</td><td>evidence:ppppppppppppppp.pcapng</td><td style='font-size:0.7rem;'>0e0764b87a49d5c2b66aa245c8f8ca90a7213fdac63a867c...</td></tr><tr><td>1</td><td>evidence:1.pcapng</td><td style='font-size:0.7rem;'>035d86fcc6fcff58e59845df7af94ae0a4850e74a941bf95...</td></tr><tr><td>2</td><td>evidence:2.pcapng</td><td style='font-size:0.7rem;'>b6ea0520509be6081f1ef2c747ad30219a835473c4a3cb75...</td></tr><tr><td>3</td><td>evidence:full_capture.pcapng</td><td style='font-size:0.7rem;'>cd21e60f53f8df162e477905e91cd5edae303d228751fa75...</td></tr><tr><td>4</td><td>evidence:lattice_source_capture.pcap</td><td style='font-size:0.7rem;'>f861f563cda719a4eeda17da540449887e4d6e244bcabd36...</td></tr><tr><td>5</td><td>parse_summary</td><td style='font-size:0.7rem;'>6676fc08d73c0c8d26c8c7be0e78d515e0671bdecb374821...</td></tr><tr><td>6</td><td>outpost:RED-2-0</td><td style='font-size:0.7rem;'>227e62246c51daaf7dc25319dbdbba299597e241caad9b4e...</td></tr><tr><td>7</td><td>outpost:RED-2-1</td><td style='font-size:0.7rem;'>255a058a235cbbd5ce1d31b5f674b50eadf68cb8133cc205...</td></tr><tr><td>8</td><td>outpost:RED-2-2</td><td style='font-size:0.7rem;'>c6371671a0f725ec2b072432007a7d62cde2b37268fd8cdc...</td></tr><tr><td>9</td><td>outpost:RED-2-3</td><td style='font-size:0.7rem;'>86be76ab12806c1934958b3386dfd446da3f8f33c7bb5219...</td></tr><tr><td>10</td><td>outpost:RED-2-4</td><td style='font-size:0.7rem;'>b3e0343ffabd5dde8b6814ad724f86a741923025430a7215...</td></tr><tr><td>11</td><td>outpost:RED-2-5</td><td style='font-size:0.7rem;'>e276a54ec562c1a30aa1b90378ba998d99a5ee5259f0c8e4...</td></tr><tr><td>12</td><td>outpost:RED-2-6</td><td style='font-size:0.7rem;'>055ff3224365a48a264277f2feabf75954afeb7451ef5a42...</td></tr><tr><td>13</td><td>outpost:RED-2-7</td><td style='font-size:0.7rem;'>7ed17f955a13891e3b8d2e02c2d57848a61dc5075ce2a1ed...</td></tr><tr><td>14</td><td>outpost:RED-2-8</td><td style='font-size:0.7rem;'>a5a6271a8e41f17a8740f68fb30c5a7c7780d83a9bea00ba...</td></tr><tr><td>15</td><td>outpost:RED-2-9</td><td style='font-size:0.7rem;'>13a6a08ff3a39e4bbd534a7157999ad6e8524eb6dd8df311...</td></tr><tr><td>16</td><td>outpost:RED-2-10</td><td style='font-size:0.7rem;'>647a68d0d0e882228c06cb90e1993cc294fbd61403144d16...</td></tr><tr><td>17</td><td>outpost:RED-2-11</td><td style='font-size:0.7rem;'>ad6d65fafcd6f2f8a340c58c6e91a9421058dd4c25499e7b...</td></tr><tr><td>18</td><td>outpost:RED-2-12</td><td style='font-size:0.7rem;'>4dcbdf5fd65e9bcee193f13d9c5ef467808508efc64eb2f9...</td></tr><tr><td>19</td><td>outpost:RED-2-13</td><td style='font-size:0.7rem;'>e8885595b0ffe6bd27b114b75582b018bb23ec9c8697f130...</td></tr><tr><td>20</td><td>outpost:RED-2-14</td><td style='font-size:0.7rem;'>85800ac0aba856b44ed2f4284509732306ed7782251d079f...</td></tr><tr><td>21</td><td>outpost:RED-2-15</td><td style='font-size:0.7rem;'>f6b0a986c05649862b6f544aea3ba17b3fabb8838551a83c...</td></tr><tr><td>22</td><td>outpost:RED-2-16</td><td style='font-size:0.7rem;'>88f8ac475a3dec91a376fb5e151c8365f99b455696ee0c47...</td></tr><tr><td>23</td><td>outpost:RED-2-17</td><td style='font-size:0.7rem;'>54fcfce867bf18256a4074c94a95f0c50d40ea47519155c7...</td></tr><tr><td>24</td><td>outpost:RED-2-18</td><td style='font-size:0.7rem;'>5ae55f7a14cf92067dbb040372f11efa348483c7302e0213...</td></tr><tr><td>25</td><td>outpost:RED-2-19</td><td style='font-size:0.7rem;'>042cf7232cec53e5a9bc62bd50b64b6a404242156add9c11...</td></tr><tr><td>26</td><td>outpost:RED-2-20</td><td style='font-size:0.7rem;'>0a77d22c8dfdf6f525f8d3ffa1b6c48d782567e8ae187d0f...</td></tr><tr><td>27</td><td>outpost:RED-2-21</td><td style='font-size:0.7rem;'>98e35306b1832b7385117f4a41ee9534f4cd5ac4435aa52a...</td></tr><tr><td>28</td><td>outpost:RED-2-22</td><td style='font-size:0.7rem;'>a95f714854fa0c9e62d8c2e62d8182841bcf232241d27bf9...</td></tr><tr><td>29</td><td>outpost:RED-2-23</td><td style='font-size:0.7rem;'>bfc8851831f4485696a83d849b230dfc337648db11261e39...</td></tr>
+            </tbody>
+        </table>
+        <p style="margin-top:1rem;color:var(--success);font-family:var(--font-mono);font-size:0.8rem;">
+            ROOT: 98f16547712914e95d1b9f73d5abe6f7a119b250b71071692220ddfe57b72503
+        </p>
+    </div>
+</div>
+
+<footer>
+    StarFire Forensics Engine | Generated 2026-05-12T16:15:04.995617+00:00 | Crystalline Lattice Protected | Dual Council Verified
+</footer>
+
+<script>
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('tab-' + tabId).classList.add('active');
+    event.target.classList.add('active');
+}
+</script>
+</body>
+</html>

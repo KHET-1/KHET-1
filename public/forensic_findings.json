@@ -1,0 +1,92 @@
+{
+  "operation": "LATTICE TEAM \u2014 KHET-1",
+  "capture_date": "2026-05-03 07:00-07:10 UTC",
+  "source_machine": "192.168.2.46 (Parrot Linux - rathin)",
+  "total_packets": 9528,
+  "drip_classification": "AUTOMATED POLLING / LOCAL SERVICE MESH",
+  "network_topology": {
+    "local_box": "192.168.2.46 (source of drip)",
+    "lan_server": "192.168.2.151 (Mac Mini running services on 8082, 7734)",
+    "cross_subnet": "192.168.1.46 (different subnet, port 8083)",
+    "external": "143.198.246.99 (apackets.com - DigitalOcean, HTTPS)",
+    "gateway": "192.168.2.1 (router, DNS)"
+  },
+  "root_offenders": [
+    {
+      "process": "Python 3.13 script (Python-urllib/3.13)",
+      "source": "192.168.2.46",
+      "behavior": "Automated polling loop",
+      "targets": [
+        "192.168.2.151:7734/status \u2014 every 7.2s (\u03c3=1.28s)",
+        "192.168.2.151:8082/api/notes \u2014 every 18.1s (\u03c3=6.38s)",
+        "192.168.1.46:8083 \u2014 cross-subnet, rotating ephemeral source ports"
+      ],
+      "payload_response_7734": "\"online\"",
+      "payload_response_8082": "\"crd-mac-mini-bombshell-2026-03-22\"",
+      "verdict": "LOCAL PYTHON SCRIPT running a monitoring/polling loop against services on 192.168.2.151 (Mac Mini) and 192.168.1.46"
+    }
+  ],
+  "drip_explanation": {
+    "what": "A Python 3.13 process on 192.168.2.46 (your Parrot box) is running an automated polling loop.",
+    "mechanism": [
+      "GET /status on port 7734 every ~7.2 seconds (health check)",
+      "GET /api/notes on port 8082 every ~18 seconds (data pull, returns 'crd-mac-mini-bombshell-2026-03-22')",
+      "Connections to 192.168.1.46:8083 (cross-subnet, 104 packets with rotating source ports)"
+    ],
+    "target_device": "192.168.2.151 \u2014 likely a Mac Mini (based on 'crd-mac-mini-bombshell' identifier) running custom HTTP services",
+    "why_port_hopping": "Ephemeral source ports rotate per-connection (stateless HTTP/1.1 without keepalive). Not actual port hopping evasion \u2014 just normal TCP behavior with short-lived connections.",
+    "the_drip": "The 'drip' IS the polling loop. Your Python script constantly pings the Mac Mini for status and notes. This generates steady low-bandwidth outbound traffic (the drip pattern).",
+    "is_malicious": "NO \u2014 this is your own monitoring script talking to your own local infrastructure. The 'crd-mac-mini-bombshell' is a note/identifier on that Mac Mini's API.",
+    "external_traffic": "143.198.246.99 = apackets.com (packet analysis tool website visited via browser). Normal HTTPS. Plus standard browser traffic to Google, DuckDuckGo, Microsoft, Cursor IDE (api2.cursor.sh)."
+  },
+  "port_map": {
+    "7734": "Custom health-check service on Mac Mini (returns 'online')",
+    "8082": "Custom API server on Mac Mini (serves /api/notes)",
+    "8083": "Service on 192.168.1.46 (cross-subnet device)",
+    "443": "Standard HTTPS (apackets.com, Google, DuckDuckGo, Cursor, Mozilla)",
+    "53": "DNS to gateway 192.168.2.1",
+    "39742+ephemeral": "Source ports (TCP client-side, NOT port hopping)"
+  },
+  "reverse_socratic_trace": [
+    {
+      "q": "What is the drip?",
+      "a": "Steady ~7s interval HTTP GETs from 192.168.2.46 to LAN devices"
+    },
+    {
+      "q": "What port carries it?",
+      "a": "Dst ports 7734, 8082, 8083. Source ports are ephemeral (normal TCP)."
+    },
+    {
+      "q": "What process owns it?",
+      "a": "Python 3.13 process using urllib (User-Agent: Python-urllib/3.13)"
+    },
+    {
+      "q": "What does it request?",
+      "a": "GET /status (healthcheck) and GET /api/notes (data pull)"
+    },
+    {
+      "q": "What does it get back?",
+      "a": "'online' from /status, 'crd-mac-mini-bombshell-2026-03-22' from /api/notes"
+    },
+    {
+      "q": "Why does it exist?",
+      "a": "You wrote a monitoring/polling script that checks your Mac Mini's services in a loop. This IS the drip."
+    },
+    {
+      "q": "Is cross-subnet 192.168.1.46 suspicious?",
+      "a": "Same pattern (port 8083), likely another device you're monitoring. Different subnet suggests VPN, VLAN, or dual-homed network."
+    }
+  ],
+  "council_summary": {
+    "red_council": "Flagged port-hopping pattern (8 non-standard ports) and regular beaconing. Scored MEDIUM.",
+    "blue_council": "72% HTTPS dominant, infrastructure DNS normal, bandwidth extremely low. Scored INFO.",
+    "final_maker": "BLUE PREVAILS. The 'port hopping' is actually normal ephemeral source port rotation on short-lived HTTP connections. The beaconing IS real but it's YOUR OWN script polling YOUR OWN devices. Not malicious."
+  },
+  "recommendations": [
+    "To identify the exact script: run `sudo lsof -i :7734` and `sudo lsof -i :8082` on 192.168.2.46 while it's active",
+    "Or: `ps aux | grep python` to find the Python 3.13 process",
+    "Or: `sudo netstat -tupn | grep 7734` for PID",
+    "The script likely lives in a cron or systemd service \u2014 check `crontab -l` and `systemctl list-units`",
+    "To reduce drip: increase polling intervals or switch to event-driven (websocket/SSE)"
+  ]
+}
