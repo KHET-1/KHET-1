@@ -35,11 +35,16 @@ svg { max-width:100%; }
 <div class="container">
 <nav><a href="/">← Lattice IDE</a> <a href="/agents/">Agents</a> <a href="/agents/infrastructure.html">Infrastructure</a></nav>
 
-<h1>Multi-Device Drip Correlation</h1>
-<p class="subtitle">How to source drip from multiple phones, find shared patterns, and cross-reference with desktop/laptop captures</p>
+<h1>Multi-Phone Drip Correlation</h1>
+<p class="subtitle">Phone-only operation. Each phone self-reports directly to Firestar. No LAN hub, no router, no desktop.</p>
 
-<h2>The Core Problem</h2>
-<p>You have multiple company phones dripping. The question is: are they dripping to the <strong>same destination</strong>, caused by the <strong>same app/process</strong>, on the <strong>same schedule</strong>? And does the desktop/laptop/Mac Mini traffic correlate?</p>
+<h2>The Architecture</h2>
+<pre>
+PHONE A ──┐
+PHONE B ──┼──→ firestar-defense.vercel.app/api/ingest ──→ Results Dashboard
+PHONE C ──┘         (direct cellular/WiFi POST)
+</pre>
+<p>Each phone captures its own traffic, maps processes to connections, and POSTs results directly to Firestar. Correlation happens server-side by comparing what each phone reported.</p>
 
 <h2>High-Signal Vectors to Source Phone Drip</h2>
 
