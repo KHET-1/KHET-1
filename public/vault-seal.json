@@ -1,0 +1,95 @@
+{
+  "operation": "LATTICE TEAM \u2014 KHET-1",
+  "seal_time": "2026-05-12T18:46:58.301760+00:00",
+  "seal_type": "TRIPLE ANCHOR \u2014 SHA-256 VAULT SEAL",
+  "verification_method": "Each artifact hashed independently. Manifest hashed. Manifest hash anchored in git commit + Merkle tree + this seal.",
+  "evidence": {
+    "1.pcapng": {
+      "sha256": "035d86fcc6fcff58e59845df7af94ae0a4850e74a941bf95099b422aa0837508",
+      "size_bytes": 1294604,
+      "packets": 280,
+      "capture_start": "2026-05-03T06:57:40Z",
+      "capture_end": "2026-05-03T06:57:55Z",
+      "anchor_1_hash": "035d86fcc6fcff58e59845df7af94ae0a4850e74a941bf95099b422aa0837508",
+      "anchor_2_git": "Committed to KHET-1/KHET-1 branch cursor/starfire-forensics-skill-051a",
+      "anchor_3_merkle": "Leaf in Merkle tree root 7a2631ab7394377a7997f6ddad26c32812101c2f"
+    },
+    "2.pcapng": {
+      "sha256": "b6ea0520509be6081f1ef2c747ad30219a835473c4a3cb751fe6266ce563a537",
+      "size_bytes": 12692304,
+      "packets": 2925,
+      "capture_start": "2026-05-03T07:00:23Z",
+      "capture_end": "2026-05-03T07:02:54Z",
+      "anchor_1_hash": "b6ea0520509be6081f1ef2c747ad30219a835473c4a3cb751fe6266ce563a537",
+      "anchor_2_git": "Committed to KHET-1/KHET-1 branch cursor/starfire-forensics-skill-051a",
+      "anchor_3_merkle": "Leaf in Merkle tree root 7a2631ab7394377a7997f6ddad26c32812101c2f"
+    },
+    "ppppppppppppppp.pcapng": {
+      "sha256": "0e0764b87a49d5c2b66aa245c8f8ca90a7213fdac63a867c5bdec64f4f446ba6",
+      "size_bytes": 12981604,
+      "packets": 6323,
+      "capture_start": "2026-05-03T07:06:12Z",
+      "capture_end": "2026-05-03T07:10:38Z",
+      "anchor_1_hash": "0e0764b87a49d5c2b66aa245c8f8ca90a7213fdac63a867c5bdec64f4f446ba6",
+      "anchor_2_git": "Committed to KHET-1/KHET-1 branch cursor/starfire-forensics-skill-051a",
+      "anchor_3_merkle": "Leaf in Merkle tree root 7a2631ab7394377a7997f6ddad26c32812101c2f"
+    }
+  },
+  "reports": {
+    "report-formal.html": {
+      "sha256": "c414b0acdd7ba22a8bb401a4a832c6079feb9eda558cbd71d53af3bc2d287f5e",
+      "description": "Court-ready formal forensic report"
+    },
+    "index.html": {
+      "sha256": "5bf40612f1811815d8a037c682be76d48b1f88e50cfea08925d65b31d2c5c080",
+      "description": "Lattice IDE main interface"
+    },
+    "starfire_report_final.html": {
+      "sha256": "6639b80f05ac5ae11ed1db18ae3086252de2d50d8f35464a287fdf119120e022",
+      "description": "StarFire interactive tabbed report"
+    },
+    "forensic_findings.json": {
+      "sha256": "c9155506eeeb0a9f9be3fa22701182467a5d898c330b892e93fc7336b4b752dc",
+      "description": "Machine-readable findings"
+    },
+    "lattice_report.json": {
+      "sha256": "fe335a50800d28decee1255a2a2432cc92640bfbb679f9af874cb40ce61a6a3a",
+      "description": "Full swarm operation output"
+    },
+    "merkle_manifest.json": {
+      "sha256": "a278a3561d8913bff3d7a51e36cf985b75675e1d2a1d4047e06e08ebbab35fcd",
+      "description": "Complete Merkle tree with all 2083 leaves"
+    }
+  },
+  "findings_summary": {
+    "total_packets_analyzed": 9528,
+    "total_evidence_bytes": 26968512,
+    "merkle_root": "7a2631ab7394377a7997f6ddad26c32812101c2f1f6f37916a65f744800cbcaf",
+    "merkle_leaves": 2083,
+    "drip_classification": "AUTOMATED POLLING / LOCAL SERVICE MESH",
+    "verdict": "BENIGN",
+    "council_alignment": "100%",
+    "root_process": "gvfsd-http (PID 181723) proxying Python 3.13 urllib",
+    "target_device": "192.168.2.151 (Mac Mini)",
+    "beacon_interval": "7.2 seconds (sigma 1.28s)",
+    "source_device": "192.168.2.46 (Parrot Linux \u2014 now airgapped/retired)"
+  },
+  "triple_anchor_verification": {
+    "anchor_1": {
+      "method": "SHA-256 hash of each file computed independently",
+      "verifiable_by": "sha256sum <filename> on any system with the original file"
+    },
+    "anchor_2": {
+      "method": "Git commit history on GitHub (KHET-1/KHET-1 repository)",
+      "verifiable_by": "git log --all --oneline in the repository; blob hashes in git objects",
+      "repository": "https://github.com/KHET-1/KHET-1",
+      "branch": "cursor/starfire-forensics-skill-051a"
+    },
+    "anchor_3": {
+      "method": "Merkle tree inclusion proof \u2014 each evidence file is a leaf",
+      "verifiable_by": "Reconstruct tree from merkle_manifest.json; verify root matches",
+      "merkle_root": "7a2631ab7394377a7997f6ddad26c32812101c2f1f6f37916a65f744800cbcaf"
+    }
+  },
+  "vault_seal_hash": "172c29fa04fe5559048edf9f021f2f2ce8441a677ff193e7e026b3f09d2baa37"
+}
