@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LATTICE — Multi-Device Correlation & Cell Drip Vectors</title>
+<style>
+:root { --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a2e; --accent:#ff6b35; --text:#e8e8f0; --text2:#a0a0b8; --muted:#6a6a80; --border:#2a2a40; --success:#4ade80; --warning:#fbbf24; --info:#60a5fa; --danger:#f87171; --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif; }
+* { margin:0;padding:0;box-sizing:border-box; }
+body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; padding:2rem; }
+.container { max-width:1000px; margin:0 auto; }
+h1 { font-size:1.4rem; margin-bottom:0.3rem; background:linear-gradient(135deg,var(--accent),#ff9f6b); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+h2 { font-size:1.05rem; margin:2rem 0 0.75rem; color:var(--accent); border-bottom:1px solid var(--border); padding-bottom:0.4rem; }
+h3 { font-size:0.92rem; margin:1.2rem 0 0.5rem; color:var(--text); }
+.subtitle { color:var(--muted); font-size:0.8rem; margin-bottom:2rem; }
+p, li { color:var(--text2); font-size:0.86rem; line-height:1.75; }
+ul, ol { margin:0.5rem 0 1rem 1.5rem; }
+pre { background:var(--bg2); padding:1rem; border-radius:6px; font-family:var(--mono); font-size:0.72rem; overflow-x:auto; color:var(--text2); border:1px solid var(--border); margin:0.75rem 0; line-height:1.6; }
+code { background:var(--bg3); padding:0.1rem 0.4rem; border-radius:3px; font-family:var(--mono); font-size:0.82rem; }
+table { width:100%; border-collapse:collapse; font-size:0.82rem; margin:0.75rem 0; }
+th { text-align:left; padding:0.5rem 0.7rem; background:var(--bg3); color:var(--muted); font-size:0.7rem; text-transform:uppercase; border-bottom:1px solid var(--border); }
+td { padding:0.5rem 0.7rem; border-bottom:1px solid var(--border); color:var(--text2); }
+.card { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:1.2rem; margin-bottom:1rem; }
+.signal { border-left:3px solid var(--accent); padding-left:1rem; margin:1rem 0; }
+.signal-high { border-left-color:var(--danger); }
+.signal-med { border-left-color:var(--warning); }
+.signal-low { border-left-color:var(--info); }
+.note { background:rgba(255,107,53,0.06); border:1px solid rgba(255,107,53,0.25); border-radius:6px; padding:0.8rem 1rem; margin:0.75rem 0; font-size:0.82rem; }
+nav { margin-bottom:2rem; }
+nav a { color:var(--accent); text-decoration:none; font-size:0.8rem; margin-right:1rem; }
+svg { max-width:100%; }
+</style>
+</head>
+<body>
+<div class="container">
+<nav><a href="/">← Lattice IDE</a> <a href="/agents/">Agents</a> <a href="/agents/infrastructure.html">Infrastructure</a></nav>
+
+<h1>Multi-Device Drip Correlation</h1>
+<p class="subtitle">How to source drip from multiple phones, find shared patterns, and cross-reference with desktop/laptop captures</p>
+
+<h2>The Core Problem</h2>
+<p>You have multiple company phones dripping. The question is: are they dripping to the <strong>same destination</strong>, caused by the <strong>same app/process</strong>, on the <strong>same schedule</strong>? And does the desktop/laptop/Mac Mini traffic correlate?</p>
+
+<h2>High-Signal Vectors to Source Phone Drip</h2>
+
+<p>These are ranked by signal-to-noise ratio — highest signal first. You don't need full pcap from every phone to start correlating.</p>
+
+<h3>Vector 1: DNS Queries (Highest Signal, Easiest to Capture)</h3>
+<div class="signal signal-high">
+<p><strong>Why highest signal:</strong> Every connection starts with DNS. Even encrypted (HTTPS/QUIC) traffic reveals its destination via DNS lookup. One DNS log from your router shows ALL devices' destinations simultaneously.</p>
+</div>
+
+<pre>
+HOW TO CAPTURE (one command, covers ALL phones on your network):
+
+# On your router/Pi-hole/Parrot box acting as DNS:
+sudo tcpdump -i any port 53 -w /tmp/dns_all.pcap -c 50000
+
+# Or if you run Pi-hole:
+pihole -t    # live tail
+cat /var/log/pihole.log   # historical
+
+# Or on Parrot box, become the DNS for all phones:
+# 1. Set up dnsmasq to log all queries:
+echo "log-queries=extra" >> /etc/dnsmasq.conf
+echo "log-facility=/var/log/dns_queries.log" >> /etc/dnsmasq.conf
+# 2. Set DHCP to hand out your Parrot box IP as DNS server
+# 3. All phone DNS now logged with client IP
+
+WHAT YOU GET:
+  timestamp | source_phone_IP | query_domain | response_IP
+  
+  14:03:22 | 192.168.2.100 (iPhone) | graph.facebook.com → 157.240.1.35
+  14:03:22 | 192.168.2.101 (Pixel)  | graph.facebook.com → 157.240.1.35
+  ^^^ CORRELATION: both phones hitting same service simultaneously
+</pre>
+
+<div class="note">
+<strong>Key insight:</strong> If 3 company phones all resolve <code>telemetry.example.com</code> at regular intervals, you've found the drip without touching any phone. DNS is cleartext by default (unless DoH/DoT is enabled).
+</div>
+
+<h3>Vector 2: Destination IP Clustering</h3>
+<div class="signal signal-high">
+<p><strong>Capture at router level.</strong> Group all outbound connections by destination IP. If multiple phones talk to the same IP at similar times → shared drip source (same app, same backend).</p>
+</div>
+
+<pre>
+# Capture all LAN traffic at router/mirror port:
+sudo tcpdump -i eth1 -w /tmp/all_traffic.pcap -c 100000
+
+# Then analyze with tshark:
+tshark -r /tmp/all_traffic.pcap -q -z endpoints,ip
+
+# Group by destination, correlated across source phones:
+tshark -r /tmp/all_traffic.pcap -T fields \
+  -e frame.time -e ip.src -e ip.dst -e tcp.dstport \
+  | sort -k3 | uniq -f2 -c | sort -rn | head -30
+
+# This shows: which destination IPs are contacted by MULTIPLE source phones
+</pre>
+
+<h3>Vector 3: TLS SNI / Server Name (Encrypted Traffic Attribution)</h3>
+<div class="signal signal-high">
+<p><strong>Even with HTTPS, the first TLS handshake packet (ClientHello) sends the server name in cleartext.</strong> This is the SNI field. Capture it at the network level — no need to decrypt.</p>
+</div>
+
+<pre>
+# Extract SNI from all TLS connections on the network:
+tshark -r /tmp/all_traffic.pcap \
+  -Y "tls.handshake.extensions_server_name" \
+  -T fields -e ip.src -e tls.handshake.extensions_server_name \
+  | sort | uniq -c | sort -rn
+
+# Output:
+#   47  192.168.2.100  graph.facebook.com
+#   45  192.168.2.101  graph.facebook.com
+#   23  192.168.2.100  api.whatsapp.net
+#   22  192.168.2.101  api.whatsapp.net
+#   15  192.168.2.100  push.services.mozilla.com
+#    8  192.168.2.102  telemetry.suspicious-app.io    ← ONLY on one phone
+</pre>
+
+<div class="note">
+<strong>Triangulation power:</strong> SNI tells you WHAT service, source IP tells you WHICH phone, timing tells you WHEN. Three dimensions of correlation without decrypting anything.
+</div>
+
+<h3>Vector 4: Timing/Interval Analysis (Beaconing Detection)</h3>
+<div class="signal signal-med">
+<p>Look for periodic patterns. Phones with the same app will beacon at similar intervals. Your Mac Mini pcaps showed 7.2s — if company phones show similar intervals to different destinations, it's the same app behavior.</p>
+</div>
+
+<pre>
+# Extract connection timestamps per destination, per source phone:
+tshark -r /tmp/all_traffic.pcap -T fields \
+  -e frame.time_epoch -e ip.src -e ip.dst -e tcp.dstport \
+  -Y "tcp.flags.syn==1 && tcp.flags.ack==0" > /tmp/syn_times.txt
+
+# Then in Python — find shared intervals:
+import pandas as pd
+df = pd.read_csv('/tmp/syn_times.txt', sep='\t', 
+                 names=['time','src','dst','port'])
+
+for dst in df['dst'].value_counts().head(10).index:
+    subset = df[df['dst'] == dst]
+    for src in subset['src'].unique():
+        times = subset[subset['src'] == src]['time'].sort_values()
+        intervals = times.diff().dropna()
+        if len(intervals) > 3:
+            mean = intervals.mean()
+            std = intervals.std()
+            if std < mean * 0.4:  # Regular = beacon
+                print(f"{src} → {dst}: interval={mean:.1f}s σ={std:.1f}s")
+</pre>
+
+<h3>Vector 5: Payload Size Fingerprinting</h3>
+<div class="signal signal-med">
+<p>Even encrypted, packet sizes are visible. If the same app does the same request, it produces similar-sized packets. Cluster by (destination, packet_size_distribution) to identify shared app behavior across phones.</p>
+</div>
+
+<pre>
+# Size distribution per flow:
+tshark -r /tmp/all_traffic.pcap -T fields \
+  -e ip.src -e ip.dst -e frame.len \
+  | awk '{key=$1" "$2; sizes[key]=sizes[key]" "$3} 
+    END {for(k in sizes) print k, sizes[k]}' > /tmp/size_profiles.txt
+
+# Phones with matching size profiles to same destination = same app behavior
+</pre>
+
+<h3>Vector 6: Connection Burst Correlation</h3>
+<div class="signal signal-low">
+<p>When a phone wakes from sleep, it bursts connections to multiple services simultaneously (push notifications, sync, heartbeats). If multiple phones burst to the same set of IPs at the same wall-clock time → same MDM, same push notification, or same app waking them.</p>
+</div>
+
+<h2>Cross-Referencing Phone Drip with Desktop/Laptop/Mac Mini</h2>
+
+<div class="card">
+<h3>The Correlation Matrix</h3>
+<p>Build this table. If the same destination appears across multiple device types → shared service (corporate MDM, cloud sync, shared app backend).</p>
+
+<table>
+<tr>
+    <th>Destination (SNI/IP)</th>
+    <th>Phone A</th>
+    <th>Phone B</th>
+    <th>Phone C</th>
+    <th>Laptop</th>
+    <th>Mac Mini</th>
+    <th>Verdict</th>
+</tr>
+<tr>
+    <td><code>api2.cursor.sh</code></td>
+    <td>—</td><td>—</td><td>—</td>
+    <td>✓</td><td>✓</td>
+    <td>Cursor IDE (desktop only)</td>
+</tr>
+<tr>
+    <td><code>graph.facebook.com</code></td>
+    <td>✓</td><td>✓</td><td>✓</td>
+    <td>—</td><td>—</td>
+    <td>Facebook SDK in mobile apps</td>
+</tr>
+<tr>
+    <td><code>firebaseinstallations.googleapis.com</code></td>
+    <td>✓</td><td>✓</td><td>✓</td>
+    <td>—</td><td>—</td>
+    <td>Firebase (push + analytics in most Android apps)</td>
+</tr>
+<tr>
+    <td><code>outlook.office365.com</code></td>
+    <td>✓</td><td>✓</td><td>✓</td>
+    <td>✓</td><td>—</td>
+    <td style="color:var(--warning);">Corporate email — ALL devices</td>
+</tr>
+<tr>
+    <td><code>mdm.company.com</code></td>
+    <td>✓</td><td>✓</td><td>✓</td>
+    <td>✓</td><td>—</td>
+    <td style="color:var(--danger);">MDM agent — key correlator</td>
+</tr>
+<tr>
+    <td><code>192.168.2.151:7734</code></td>
+    <td>—</td><td>—</td><td>—</td>
+    <td>✓</td><td>—</td>
+    <td>Your monitoring script (laptop → Mac Mini)</td>
+</tr>
+</table>
+</div>
+
+<div class="card">
+<h3>What to Look For: Shared Drip Indicators</h3>
+
+<ol>
+<li><strong>Same destination across all devices</strong> → Corporate service (MDM, email, VPN, cloud storage)</li>
+<li><strong>Same destination on all phones but NOT desktop</strong> → Mobile-specific SDK or push service</li>
+<li><strong>Same timing pattern across devices</strong> → Centralized push or polling config</li>
+<li><strong>Destination only on ONE phone</strong> → App unique to that phone, or compromised device</li>
+<li><strong>Unknown/suspicious destination on multiple devices</strong> → Potential threat actor with multi-device access</li>
+</ol>
+</div>
+
+<h2>Practical: The Capture-Correlate Pipeline</h2>
+
+<pre>
+STEP 1: CAPTURE (all at the same time, 5-10 minutes)
+─────────────────────────────────────────────────────
+# On Parrot box (if router mirror available):
+sudo tcpdump -i eth1 -w /tmp/network_all.pcap -G 600 -W 1
+
+# On each Android phone (PCAPdroid or Termux):
+curl -sL https://firestar-defense.vercel.app/agents/phone-capture-android.sh | bash
+
+# On Mac Mini:
+sudo tcpdump -i any -w /tmp/macmini.pcap -c 20000
+
+# On Laptop:
+sudo tcpdump -i any -w /tmp/laptop.pcap -c 20000
+
+
+STEP 2: UPLOAD ALL TO LATTICE
+─────────────────────────────
+for f in /tmp/*.pcap; do
+  curl -X POST https://firestar-defense.vercel.app/api/ingest \
+    -H "Content-Type: application/octet-stream" \
+    -H "X-Device-ID: $(hostname)-$(basename $f)" \
+    --data-binary @$f
+done
+
+
+STEP 3: CORRELATE (on Parrot box with all pcaps)
+────────────────────────────────────────────────
+# Extract all SNI across all captures:
+for f in /tmp/*.pcap; do
+  echo "=== $f ==="
+  tshark -r "$f" -Y "tls.handshake.extensions_server_name" \
+    -T fields -e ip.src -e tls.handshake.extensions_server_name
+done | sort | uniq -c | sort -rn > /tmp/sni_correlation.txt
+
+# Extract all DNS across all captures:
+for f in /tmp/*.pcap; do
+  tshark -r "$f" -Y "dns.qr==0" \
+    -T fields -e ip.src -e dns.qry.name
+done | sort | uniq -c | sort -rn > /tmp/dns_correlation.txt
+
+# Find destinations shared by 2+ source IPs:
+awk '{print $3}' /tmp/sni_correlation.txt | sort | uniq -c | sort -rn | \
+  awk '$1 > 1 {print "SHARED ("$1" devices):", $2}'
+
+
+STEP 4: IDENTIFY SHARED DRIP
+─────────────────────────────
+# The output from Step 3 shows:
+#   SHARED (4 devices): outlook.office365.com    ← all phones + laptop
+#   SHARED (3 devices): graph.facebook.com       ← all phones
+#   SHARED (2 devices): api2.cursor.sh           ← laptop + mac mini
+#   UNIQUE (1 device):  sketchy-domain.xyz       ← INVESTIGATE THIS ONE
+</pre>
+
+<h2>Cell-Specific Vectors (Carrier/Mobile Network)</h2>
+
+<div class="card">
+<h3>What's different about phone traffic vs WiFi traffic</h3>
+
+<p>When phones are on <strong>cellular</strong> (not WiFi), you can't capture at your router. Different approach needed:</p>
+
+<table>
+<tr><th>Scenario</th><th>What You Can See</th><th>How</th></tr>
+<tr>
+    <td>Phone on YOUR WiFi</td>
+    <td>Everything (same as wired)</td>
+    <td>Router mirror / ARP / DNS</td>
+</tr>
+<tr>
+    <td>Phone on cellular</td>
+    <td>Only what the phone itself reports</td>
+    <td>PCAPdroid (Android) or VPN tunnel back to your network</td>
+</tr>
+<tr>
+    <td>Phone on cellular + VPN to your network</td>
+    <td>All traffic routed through your infra</td>
+    <td>WireGuard/OpenVPN on Parrot box, phones connect to it</td>
+</tr>
+</table>
+
+<div class="note">
+<strong>Best approach for cellular phones:</strong> Run a WireGuard server on your Parrot box (or Mac Mini). Configure company phones to always-on VPN through it. ALL phone traffic then flows through your network where you can capture it — regardless of whether they're on WiFi or cellular.
+</div>
+
+<pre>
+# Set up WireGuard on Parrot box (one-time):
+sudo apt install wireguard
+wg genkey | tee /etc/wireguard/server_private | wg pubkey > /etc/wireguard/server_public
+
+# /etc/wireguard/wg0.conf:
+[Interface]
+Address = 10.66.66.1/24
+ListenPort = 51820
+PrivateKey = SERVER_PRIVATE_KEY
+
+[Peer]  # Phone 1
+PublicKey = PHONE1_PUBLIC_KEY
+AllowedIPs = 10.66.66.2/32
+
+[Peer]  # Phone 2
+PublicKey = PHONE2_PUBLIC_KEY
+AllowedIPs = 10.66.66.3/32
+
+# Start:
+sudo wg-quick up wg0
+
+# Now capture all phone traffic on the VPN interface:
+sudo tcpdump -i wg0 -w /tmp/all_phones_vpn.pcap
+
+# Each phone gets a unique VPN IP → instant per-device attribution
+</pre>
+</div>
+
+<div class="card">
+<h3>Carrier-Level Drip (what phones do you can't control)</h3>
+<p>Every phone on cellular constantly talks to carrier infrastructure. This is NOT your drip — it's baseband-level and you cannot control it:</p>
+<ul>
+<li><strong>RRC signaling</strong> — radio resource control (phone → tower negotiation)</li>
+<li><strong>IMS/VoLTE</strong> — always-on SIP registration for calls</li>
+<li><strong>Carrier push</strong> — T-Mobile/AT&T/Verizon push channels</li>
+<li><strong>SUPL/GPS assist</strong> — location services via carrier</li>
+</ul>
+<p>You can't see or capture this from WiFi/network level. It only shows up if you have baseband access (root + specialized tools). <strong>Ignore this layer</strong> — focus on application-layer drip which you CAN control.</p>
+</div>
+
+<h2>Correlation Cheat Sheet</h2>
+
+<div class="card">
+<pre>
+FINDING SHARED DRIP ACROSS DEVICES:
+
+1. DNS is king. One DNS capture at router level → all devices revealed.
+2. SNI is queen. Even encrypted traffic shows its destination in TLS ClientHello.
+3. Timing is the tiebreaker. Same interval from multiple devices = same app/config.
+
+MATCHING PHONE ↔ DESKTOP:
+- Same SNI/DNS destination + same timing = same service/app on both platforms
+- Phone-only destinations = mobile SDKs (Firebase, Facebook SDK, Crashlytics)
+- Desktop-only destinations = dev tools (Cursor, npm, Docker registries)
+- BOTH = corporate services (O365, MDM, Slack, cloud storage)
+
+IDENTIFYING THE ACTUAL APP (on phone):
+- Android: PCAPdroid shows process name per connection
+- iOS: rvictl pcap + match timing to known app behavior
+- Network-only: SNI domain → Google which app uses that domain
+
+RED FLAGS (potential threat vs normal drip):
+- Destination contacted by only ONE device when others share the same config
+- High-entropy domain names (DGA-generated: adf83jk2.xyz)
+- Connections to residential IPs or VPS ranges (DigitalOcean, Linode, Vultr)
+- Intervals that shift or jitter deliberately (C2 trying to avoid detection)
+- Traffic volume spikes correlated with user activity (keylogger exfil pattern)
+</pre>
+</div>
+
+<p style="text-align:center;margin-top:2rem;">
+    <a href="/agents/" style="padding:0.6rem 1.2rem;background:var(--accent);color:white;border-radius:6px;text-decoration:none;font-weight:600;">Download Agents</a>
+    <a href="/agents/results.html" style="padding:0.6rem 1.2rem;background:none;border:1px solid var(--accent);color:var(--accent);border-radius:6px;text-decoration:none;font-weight:600;margin-left:0.5rem;">View Results</a>
+</p>
+</div>
+</body>
+</html>
