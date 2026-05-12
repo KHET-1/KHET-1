@@ -567,23 +567,58 @@ def capture_local(duration=10, packet_count=500, interface='any'):
 
 
 def find_local_pcaps():
-    """Search local box for any existing pcap files."""
-    search_paths = [
-        Path.home() / 'Desktop',
-        Path.home() / 'Downloads',
-        Path.home() / 'Documents',
-        Path('/tmp'),
-        Path('/var/log'),
-        Path.home(),
-    ]
+    """
+    Search entire local box for pcap/pcapng files.
+    Uses ripgrep --files for speed, falls back to find.
+    Checks root, home, tmp, var, and full filesystem.
+    """
+    pcaps = set()
 
-    pcaps = []
+    # Method 1: ripgrep (fastest)
+    try:
+        result = subprocess.run(
+            ['rg', '--files', '-g', '*.pcap', '-g', '*.pcapng', '-g', '*.cap', '/'],
+            capture_output=True, text=True, timeout=10
+        )
+        for line in result.stdout.strip().split('\n'):
+            if line:
+                p = Path(line)
+                if p.exists() and p.stat().st_size > 0:
+                    pcaps.add(p)
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
+    # Method 2: find (fallback, covers permission-restricted areas)
+    try:
+        result = subprocess.run(
+            ['find', '/', '-type', 'f', '(', '-name', '*.pcap', '-o',
+             '-name', '*.pcapng', '-o', '-name', '*.cap', ')'],
+            capture_output=True, text=True, timeout=15
+        )
+        for line in result.stdout.strip().split('\n'):
+            if line:
+                p = Path(line)
+                if p.exists() and p.stat().st_size > 0:
+                    pcaps.add(p)
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+
+    # Method 3: manual sweep of common locations
+    search_paths = [
+        Path('/root'), Path('/tmp'), Path('/var/log'),
+        Path('/home'), Path('/opt'), Path('/srv'),
+        Path.home() / 'Desktop', Path.home() / 'Downloads',
+        Path.home() / 'Documents', Path.home(),
+    ]
     for sp in search_paths:
         if sp.exists():
-            pcaps.extend(sp.glob('*.pcap'))
-            pcaps.extend(sp.glob('*.pcapng'))
+            try:
+                for ext in ('*.pcap', '*.pcapng', '*.cap'):
+                    pcaps.update(sp.rglob(ext))
+            except PermissionError:
+                pass
 
-    return pcaps
+    return sorted(pcaps, key=lambda p: p.stat().st_size, reverse=True)
 
 
 # ============================================================
