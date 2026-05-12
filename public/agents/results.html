@@ -71,7 +71,7 @@ let countdown = 10;
 
 async function fetchResults() {
     try {
-        const res = await fetch('/api/results');
+        const res = await fetch('/api/ingest');
         const data = await res.json();
         
         document.getElementById('last-check').textContent = new Date().toLocaleTimeString();
