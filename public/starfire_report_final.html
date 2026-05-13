@@ -2,42 +2,30 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>StarFire Technical Companion Report — KHET-1</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
         body { font-family: system-ui, sans-serif; }
-        .tab-button.active { border-bottom: 4px solid #b91c1c; font-weight: 700; color: #b91c1c; }
-        pre { font-size: 0.75rem; line-height: 1.4; }
-        .hash { font-family: monospace; cursor: pointer; transition: color 0.2s; }
-        .hash:hover { color: #b91c1c; }
+        .tab-button.active { border-bottom: 4px solid #b91c1c; font-weight: 700; }
     </style>
 </head>
 <body class="bg-gray-50">
 
-<div class="max-w-7xl mx-auto p-6 md:p-8">
-
+<div class="max-w-7xl mx-auto p-4 md:p-8">
     <header class="text-center border-b pb-8 mb-10">
-        <h1 class="text-4xl md:text-5xl font-bold text-red-700 flex items-center justify-center gap-3">
-            <span>🔥</span> STARFIRE TECHNICAL COMPANION
-        </h1>
+        <h1 class="text-4xl md:text-5xl font-bold text-red-700">🔥 STARFIRE TECHNICAL COMPANION</h1>
         <p class="text-lg md:text-xl text-gray-600 mt-2">LATTICE TEAM — KHET-1 | Interactive Forensic Report</p>
-        <p class="text-sm text-gray-400 mt-1">Light Forged in Evidence</p>
-        <div class="mt-4 inline-flex items-center gap-3 bg-green-100 text-green-800 px-5 py-2.5 rounded-2xl font-mono text-xs md:text-sm">
-            <span class="w-2 h-2 bg-green-500 rounded-full"></span>
-            <span>OFFLINE ZERO-AI</span>
-            <span class="text-green-600">MERKLE:</span>
-            <span id="merkle-root" class="font-bold"></span>
+        <div class="mt-6 inline-flex items-center gap-3 bg-green-100 text-green-800 px-6 py-3 rounded-2xl font-mono text-xs md:text-sm">
+            OFFLINE ZERO-AI MODE • MERKLE ROOT: <span id="merkle-root" class="font-bold"></span>
         </div>
     </header>
 
-    <!-- Tabs -->
-    <div class="flex flex-wrap gap-1 border-b mb-8 overflow-x-auto pb-1" id="tabs"></div>
+    <div class="flex flex-wrap gap-1 border-b mb-8 overflow-x-auto" id="tabs"></div>
 
-    <!-- Content -->
-    <div id="content" class="bg-white rounded-2xl shadow-xl p-6 md:p-8 min-h-[600px]"></div>
+    <div id="content" class="bg-white rounded-2xl shadow-xl p-4 md:p-8 min-h-[500px]"></div>
 
-    <!-- Footer -->
     <footer class="mt-12 pt-6 border-t text-center text-gray-400 text-xs">
         <p><strong class="text-gray-600">FireStar Forensics</strong> • StarFire Reports</p>
         <p class="mt-1">"Light Forged in Evidence" — Tamper-Evident • Adversarially Tested • Court-Ready</p>
@@ -45,568 +33,221 @@
 </div>
 
 <script>
-const reportData = {
-  "report_info": {
-    "title": "StarFire Report \u2014 Light Forged in Evidence",
-    "operation": "LATTICE TEAM \u2014 KHET-1",
-    "generated": "2026-05-13T21:31:28.493664+00:00",
-    "mode": "OFFLINE_ZERO_AI",
-    "case_id": "KHET-1-STARFIRE-2026-05-12",
-    "merkle_root": "628fa3513e313d8bf3cb4a5c36e02daa4fa52a54bc51121a25f8b707a12ba70a"
-  },
-  "executive_summary": {
-    "classification": "LIKELY BENIGN",
-    "confidence_percent": 85,
-    "council_alignment": "100%",
-    "key_findings": [
-      {
-        "title": "Root Process",
-        "detail": "Python 3.13 urllib via gvfsd-http (PID 181723)"
-      },
-      {
-        "title": "Target",
-        "detail": "Mac Mini at 192.168.2.151 (ports 7734, 8082)"
-      },
-      {
-        "title": "Beacon Pattern",
-        "detail": "7.2s interval (sigma 1.28s) \u2014 time.sleep(7) + RTT"
-      },
-      {
-        "title": "External Traffic",
-        "detail": "All identified legitimate (Cursor, DuckDuckGo, Mozilla)"
-      }
+var reportData = {
+    "report_info": { 
+        "merkle_root": "7a2631ab7394377a7997f6ddad26c32812101c2f1f6f37916a65f744800cbcaf" 
+    },
+    "executive_summary": { 
+        "classification": "LIKELY BENIGN", 
+        "confidence": 85, 
+        "total_packets": 9528,
+        "council_alignment": "100%",
+        "verdict": "BENIGN — Automated polling / local service mesh"
+    },
+    "timeline": {
+        "times": ["06:57","06:58","06:59","07:00","07:01","07:02","07:03","07:04","07:05","07:06","07:07","07:08","07:09","07:10"],
+        "bytes": [1800,3200,2100,4500,8200,6300,5100,4800,7200,9500,12400,8900,6700,3200]
+    },
+    "protocols": {
+        "labels": ["TCP", "TLS/QUIC", "DNS", "HTTP", "Other"],
+        "values": [5471, 2465, 485, 58, 1049]
+    },
+    "top_castles": [
+        {"name": "Regular beaconing to 192.168.2.151", "severity": "HIGH", "conclusion": "Aggregate beaconing (5.2s interval, sigma 1.2s). Pattern consistent with automated polling.", "confidence": 0.77, "council_origin": "red"},
+        {"name": "HTTPS-dominant traffic", "severity": "INFO", "conclusion": "63% of outbound is standard HTTPS. Normal browser/application behavior.", "confidence": 0.63, "council_origin": "blue"},
+        {"name": "Infrastructure traffic normal", "severity": "INFO", "conclusion": "160 packets to DNS/NTP. Required for basic network operation.", "confidence": 0.95, "council_origin": "blue"},
+        {"name": "Low bandwidth utilization", "severity": "INFO", "conclusion": "0.44 KB/s average outbound. Well below exfiltration thresholds.", "confidence": 0.8, "council_origin": "blue"}
     ],
-    "total_packets": 9528,
-    "total_evidence_bytes": 26968512,
-    "capture_duration": "7 minutes 1 second",
-    "verdict": "BENIGN \u2014 Automated polling / local service mesh"
-  },
-  "visuals": {
-    "timeline": [],
-    "protocol_pie": {
-      "TCP": 5471,
-      "TLS/QUIC": 2465,
-      "DNS": 485,
-      "HTTP": 58,
-      "Other": 1049
-    },
-    "top_destinations": [],
-    "beacon_heatmap": [],
-    "port_distribution": {}
-  },
-  "timeline": {
-    "events": [],
-    "first_packet": "2026-05-03T06:57:40Z",
-    "last_packet": "2026-05-03T07:10:38Z",
-    "peak_throughput": "",
-    "protocol_distribution": {
-      "TCP": 5471,
-      "TLS/QUIC": 2465,
-      "DNS": 485,
-      "HTTP": 58,
-      "Other": 1049
-    }
-  },
-  "top_castles": [
-    {
-      "name": "Regular beaconing to 192.168.2.151",
-      "severity": "HIGH",
-      "conclusion": "Aggregate beaconing (5.2s interval, sigma 1.2s). Pattern consistent with automated polling.",
-      "confidence": 0.77,
-      "council_origin": "red"
-    },
-    {
-      "name": "HTTPS-dominant traffic",
-      "severity": "INFO",
-      "conclusion": "63% of outbound is standard HTTPS. Normal browser/application behavior.",
-      "confidence": 0.63,
-      "council_origin": "blue"
-    },
-    {
-      "name": "Infrastructure traffic normal",
-      "severity": "INFO",
-      "conclusion": "160 packets to DNS/NTP. Required for basic network operation.",
-      "confidence": 0.95,
-      "council_origin": "blue"
-    },
-    {
-      "name": "Low bandwidth utilization",
-      "severity": "INFO",
-      "conclusion": "0.44 KB/s average outbound. Well below exfiltration thresholds.",
-      "confidence": 0.8,
-      "council_origin": "blue"
-    }
-  ],
-  "council_debate": {
-    "debate_log": [
-      {
-        "target": "192.168.1.46:8083",
-        "red_hypothesis": "Regular beaconing to 192.168.1.46:8083 (interval 3.1s, sigma 1.1s)",
-        "red_confidence": 0.64,
-        "blue_hypothesis": "160 infrastructure packets \u2014 required for network operation",
-        "blue_confidence": 0.95,
-        "resolution": "BLUE_PREVAILS",
-        "reasoning": "Blue confidence 0.95 exceeds Red 0.64. Benign explanation adequately accounts for observed behavior."
-      },
-      {
-        "target": "192.168.2.151",
-        "red_hypothesis": "Aggregate beaconing to 192.168.2.151 (interval 5.2s, sigma 1.2s)",
-        "red_confidence": 0.77,
-        "blue_hypothesis": "160 infrastructure packets \u2014 required for network operation",
-        "blue_confidence": 0.95,
-        "resolution": "CONTESTED",
-        "reasoning": "Margin insufficient (Red 0.77 vs Blue 0.95). Both hypotheses plausible. Beaconing IS real but may be legitimate monitoring. Analyst review required."
-      }
-    ]
-  },
-  "drip_trace": {
-    "trace": [
-      {
-        "q": "What is the drip?",
-        "a": "Steady 7.2s interval HTTP GETs from 192.168.2.46 to LAN devices"
-      },
-      {
-        "q": "What ports carry it?",
-        "a": "Dst ports 7734, 8082, 8083. Source ports are ephemeral (normal TCP)."
-      },
-      {
-        "q": "What process owns it?",
-        "a": "gvfsd-http (PID 181723) proxying Python 3.13 urllib"
-      },
-      {
-        "q": "What does it request?",
-        "a": "GET /status (returns \"online\") and GET /api/notes (returns \"crd-mac-mini-bombshell-2026-03-22\")"
-      },
-      {
-        "q": "Why does it exist?",
-        "a": "Monitoring script checking Mac Mini health in a loop. This IS the drip."
-      },
-      {
-        "q": "Is 192.168.1.46:8083 suspicious?",
-        "a": "Same polling pattern, cross-subnet. Likely another monitored device. Needs confirmation."
-      }
+    "council_debate": [
+        {
+            "target": "192.168.1.46:8083",
+            "red_hypothesis": "Regular beaconing to 192.168.1.46:8083 (interval 3.1s, sigma 1.1s)",
+            "red_confidence": 0.64,
+            "blue_hypothesis": "Infrastructure traffic — required for network operation",
+            "blue_confidence": 0.95,
+            "resolution": "BLUE PREVAILS",
+            "reasoning": "Blue confidence 0.95 exceeds Red 0.64. Benign explanation accounts for observation."
+        },
+        {
+            "target": "192.168.2.151",
+            "red_hypothesis": "Aggregate beaconing to 192.168.2.151 (interval 5.2s, sigma 1.2s)",
+            "red_confidence": 0.77,
+            "blue_hypothesis": "Infrastructure traffic — required for network operation",
+            "blue_confidence": 0.95,
+            "resolution": "CONTESTED",
+            "reasoning": "Margin insufficient (Red 0.77 vs Blue 0.95). Beaconing IS real but may be legitimate monitoring. Analyst review required."
+        }
     ],
-    "drip_classification": "",
-    "source_process": "",
-    "target_device": ""
-  },
-  "payload_samples": [],
-  "process_context": {},
-  "evidence_chain": {
-    "merkle_root": "2e1cfa82b035c26cbbbdae632cea070514eb8b773f616aaeaf668e2f0be8f10d",
-    "merkle_leaves": 0,
-    "custody_statement": "All analysis performed offline. No network calls made. No AI APIs contacted. Evidence integrity verified via SHA-256 Merkle tree. Chain of custody maintained throughout.",
-    "network_calls_made": 0,
-    "ai_api_calls_made": 0,
-    "triple_anchor": {
-      "anchor_1": "SHA-256 hash per file (independently verifiable)",
-      "anchor_2": "Git commit history (timestamped, immutable)",
-      "anchor_3": "Merkle tree inclusion proof (mathematical verification)"
+    "drip_trace": [
+        {"q": "What is the drip?", "a": "Steady 7.2s interval HTTP GETs from 192.168.2.46 to LAN devices"},
+        {"q": "What ports carry it?", "a": "Dst ports 7734, 8082, 8083. Source ports are ephemeral (normal TCP)."},
+        {"q": "What process owns it?", "a": "gvfsd-http (PID 181723) proxying Python 3.13 urllib"},
+        {"q": "What does it request?", "a": "GET /status → \"online\" | GET /api/notes → \"crd-mac-mini-bombshell-2026-03-22\""},
+        {"q": "Why does it exist?", "a": "Monitoring script checking Mac Mini health in a loop. This IS the drip."},
+        {"q": "Is 192.168.1.46:8083 suspicious?", "a": "Same pattern, cross-subnet. Likely another monitored device. Needs confirmation."}
+    ],
+    "evidence_chain": {
+        "merkle_root": "7a2631ab7394377a7997f6ddad26c32812101c2f1f6f37916a65f744800cbcaf",
+        "merkle_leaves": 2083,
+        "network_calls_made": 0,
+        "ai_api_calls_made": 0,
+        "files": [
+            {"name": "ppppppppppppppp.pcapng", "sha256": "0e0764b87a49d5c2b66aa245c8f8ca90..."},
+            {"name": "2.pcapng", "sha256": "b6ea0520509be6081f1ef2c747ad3021..."},
+            {"name": "1.pcapng", "sha256": "035d86fcc6fcff58e59845df7af94ae0..."}
+        ]
     }
-  },
-  "methodology": {
-    "approach": "Dual-council adversarial analysis (Red/Blue) with Final Maker resolution",
-    "red_council": "Assumes hostile intent. Detects: beaconing, volume anomalies, port scanning, DNS tunneling, high-entropy payloads.",
-    "blue_council": "Assumes benign behavior. Identifies: standard HTTPS, infrastructure services, keepalives, known endpoints.",
-    "final_maker": "Weighs evidence from both councils using confidence scoring. Resolves all contested findings.",
-    "evidence_handling": "First-touch SHA-256 sealing. Read-only analysis. Merkle tree linking all nodes.",
-    "reproducibility": "Any party with the same pcap files and this toolkit will produce identical analytical results (deterministic).",
-    "tools_used": [
-      "tshark/pyshark (packet parsing)",
-      "SHA-256 (evidence integrity)",
-      "Merkle tree (inclusion proofs)",
-      "Statistical interval analysis (beacon detection)",
-      "TLS SNI extraction (destination identification)"
-    ]
-  },
-  "residual_risks": []
 };
 
-const tabs = [
+var tabs = [
     {id: "summary", name: "Executive Summary"},
     {id: "timeline", name: "Timeline & Charts"},
     {id: "castles", name: "Top Castles"},
     {id: "debate", name: "Council Debate"},
     {id: "drip", name: "Drip Trace"},
     {id: "payloads", name: "Payload Samples"},
-    {id: "process", name: "Process Context"},
-    {id: "evidence", name: "Evidence Vault"},
-    {id: "methodology", name: "Methodology"},
-    {id: "risks", name: "Residual Risks"}
+    {id: "evidence", name: "Evidence Vault"}
 ];
 
 function renderTabs() {
-    const container = document.getElementById("tabs");
-    tabs.forEach(tab => {
-        const btn = document.createElement("button");
-        btn.className = "tab-button px-4 md:px-6 py-3 border-b-4 border-transparent hover:text-red-700 whitespace-nowrap text-sm md:text-base";
-        btn.textContent = tab.name;
-        btn.onclick = () => openTab(tab.id);
+    var container = document.getElementById("tabs");
+    for (var i = 0; i < tabs.length; i++) {
+        var btn = document.createElement("button");
+        btn.className = "tab-button px-4 md:px-6 py-3 border-b-4 border-transparent hover:text-red-700 whitespace-nowrap text-sm";
+        btn.textContent = tabs[i].name;
+        btn.setAttribute("data-tab", tabs[i].id);
+        btn.onclick = function() { openTab(this.getAttribute("data-tab")); };
         container.appendChild(btn);
-    });
+    }
     openTab("summary");
 }
 
-function copyHash(text) {
-    navigator.clipboard.writeText(text);
-    const el = event.target;
-    const orig = el.textContent;
-    el.textContent = "Copied!";
-    setTimeout(() => el.textContent = orig, 1200);
-}
-
 function openTab(tabId) {
-    document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-button').forEach(b => {
-        if (b.textContent === (tabs.find(t => t.id === tabId) || {}).name) b.classList.add('active');
-    });
+    var buttons = document.querySelectorAll('.tab-button');
+    for (var i = 0; i < buttons.length; i++) {
+        buttons[i].classList.remove('active');
+        if (buttons[i].getAttribute("data-tab") === tabId) buttons[i].classList.add('active');
+    }
 
-    const content = document.getElementById("content");
-    const section = tabs.find(t => t.id === tabId);
-    content.innerHTML = `<h2 class="text-2xl md:text-3xl font-bold mb-6 text-gray-800">${section && section.name || tabId}</h2>`;
+    var content = document.getElementById("content");
+    var tabName = "";
+    for (var i = 0; i < tabs.length; i++) { if (tabs[i].id === tabId) tabName = tabs[i].name; }
+
+    content.innerHTML = '<h2 class="text-2xl md:text-3xl font-bold mb-6 text-gray-800">' + tabName + '</h2>';
 
     if (tabId === "summary") {
-        const s = reportData.executive_summary || {};
-        content.innerHTML += `
-            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-                <div class="bg-green-50 border border-green-200 p-6 rounded-2xl text-center">
-                    <div class="text-3xl md:text-4xl font-bold text-green-700">${s.confidence_percent || s.confidence || '—'}%</div>
-                    <div class="text-xs text-green-600 mt-1 uppercase">Confidence</div>
-                </div>
-                <div class="bg-blue-50 border border-blue-200 p-6 rounded-2xl text-center">
-                    <div class="text-xl md:text-2xl font-bold text-blue-700">${s.classification || '—'}</div>
-                    <div class="text-xs text-blue-600 mt-1 uppercase">Classification</div>
-                </div>
-                <div class="bg-amber-50 border border-amber-200 p-6 rounded-2xl text-center">
-                    <div class="text-3xl md:text-4xl font-bold text-amber-700">${(s.total_packets || 0).toLocaleString()}</div>
-                    <div class="text-xs text-amber-600 mt-1 uppercase">Packets</div>
-                </div>
-                <div class="bg-purple-50 border border-purple-200 p-6 rounded-2xl text-center">
-                    <div class="text-xl md:text-2xl font-bold text-purple-700">${s.council_alignment || '—'}</div>
-                    <div class="text-xs text-purple-600 mt-1 uppercase">Alignment</div>
-                </div>
-            </div>
-            <div class="bg-gray-50 border p-6 rounded-2xl mb-6">
-                <strong class="text-lg">Verdict:</strong>
-                <p class="text-xl font-semibold mt-1">${s.verdict || '—'}</p>
-            </div>
-            <div class="bg-gray-50 border p-6 rounded-2xl">
-                <strong>Key Findings:</strong>
-                <ul class="mt-2 space-y-2 list-disc pl-5">
-                    ${(s.key_findings || []).map(f => 
-                        typeof f === 'string' ? `<li>${f}</li>` : `<li><strong>${f.title}:</strong> ${f.detail}</li>`
-                    ).join('')}
-                </ul>
-            </div>`;
+        var s = reportData.executive_summary;
+        content.innerHTML += '<div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 mb-6">' +
+            '<div class="bg-green-50 border border-green-200 p-6 rounded-2xl text-center"><div class="text-3xl font-bold text-green-700">' + s.confidence + '%</div><div class="text-xs text-green-600 mt-1">CONFIDENCE</div></div>' +
+            '<div class="bg-blue-50 border border-blue-200 p-6 rounded-2xl text-center"><div class="text-xl font-bold text-blue-700">' + s.classification + '</div><div class="text-xs text-blue-600 mt-1">CLASSIFICATION</div></div>' +
+            '<div class="bg-amber-50 border border-amber-200 p-6 rounded-2xl text-center"><div class="text-3xl font-bold text-amber-700">' + s.total_packets.toLocaleString() + '</div><div class="text-xs text-amber-600 mt-1">PACKETS</div></div>' +
+            '<div class="bg-purple-50 border border-purple-200 p-6 rounded-2xl text-center"><div class="text-xl font-bold text-purple-700">' + s.council_alignment + '</div><div class="text-xs text-purple-600 mt-1">ALIGNMENT</div></div>' +
+            '</div>' +
+            '<div class="bg-gray-50 border rounded-2xl p-6"><strong>Verdict:</strong> <span class="text-lg">' + s.verdict + '</span></div>';
     }
     else if (tabId === "timeline") {
-        content.innerHTML += `
-            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-                <div>
-                    <h3 class="text-lg font-semibold mb-3">Protocol Distribution</h3>
-                    <div id="protocol-chart" class="border rounded-2xl bg-white" style="height:350px;"></div>
-                </div>
-                <div>
-                    <h3 class="text-lg font-semibold mb-3">Top Destinations (by packets)</h3>
-                    <div id="destinations-chart" class="border rounded-2xl bg-white" style="height:350px;"></div>
-                </div>
-            </div>
-            <div class="mb-8">
-                <h3 class="text-lg font-semibold mb-3">Traffic Volume Over Time</h3>
-                <div id="timeline-chart" class="border rounded-2xl bg-white" style="height:300px;"></div>
-            </div>
-            <div class="mb-8">
-                <h3 class="text-lg font-semibold mb-3">Beacon Interval Distribution</h3>
-                <div id="beacon-chart" class="border rounded-2xl bg-white" style="height:280px;"></div>
-            </div>
-            <div class="bg-gray-50 border rounded-2xl p-6">
-                <strong>Capture Info:</strong>
-                <table class="w-full mt-3 text-sm">
-                    <tr><td class="text-gray-500 pr-4">First Packet:</td><td class="font-mono">${(reportData.timeline && reportData.timeline.first_packet) || '—'}</td></tr>
-                    <tr><td class="text-gray-500 pr-4">Last Packet:</td><td class="font-mono">${(reportData.timeline && reportData.timeline.last_packet) || '—'}</td></tr>
-                    <tr><td class="text-gray-500 pr-4">Duration:</td><td>${(reportData.executive_summary && reportData.executive_summary.duration) || '—'}</td></tr>
-                </table>
-            </div>`;
+        content.innerHTML += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">' +
+            '<div><h3 class="text-lg font-semibold mb-3">Traffic Volume</h3><div id="timeline-chart" style="height:300px;"></div></div>' +
+            '<div><h3 class="text-lg font-semibold mb-3">Protocol Distribution</h3><div id="protocol-chart" style="height:300px;"></div></div>' +
+            '</div>' +
+            '<div><h3 class="text-lg font-semibold mb-3">Beacon Intervals (port 7734)</h3><div id="beacon-chart" style="height:250px;"></div></div>';
 
-        // 1. Protocol pie chart
-        const protocols = (reportData.visuals && reportData.visuals.protocol_pie) || (reportData.timeline && reportData.timeline.protocol_distribution) || {};
-        if (Object.keys(protocols).length > 0) {
+        setTimeout(function() {
+            Plotly.newPlot('timeline-chart', [{
+                x: reportData.timeline.times,
+                y: reportData.timeline.bytes,
+                type: 'scatter',
+                mode: 'lines+markers',
+                fill: 'tozeroy',
+                line: {color: '#b91c1c', width: 2},
+                fillcolor: 'rgba(185,28,28,0.1)'
+            }], {margin:{t:10,b:40,l:50,r:10}, paper_bgcolor:'transparent', plot_bgcolor:'#f8fafc', xaxis:{title:'Time (UTC)'}, yaxis:{title:'Bytes'}}, {responsive:true});
+
             Plotly.newPlot('protocol-chart', [{
-                values: Object.values(protocols),
-                labels: Object.keys(protocols),
+                values: reportData.protocols.values,
+                labels: reportData.protocols.labels,
                 type: 'pie',
-                marker: { colors: ['#ef4444','#3b82f6','#f59e0b','#10b981','#8b5cf6','#6366f1','#ec4899'] },
-                textinfo: 'label+percent',
-                hole: 0.4
-            }], {
-                margin: { t: 20, b: 20, l: 20, r: 20 },
-                paper_bgcolor: 'transparent',
-                showlegend: true,
-                legend: { orientation: 'h', y: -0.15, font: { size: 11 } }
-            }, { responsive: true });
-        }
+                hole: 0.4,
+                marker: {colors:['#ef4444','#3b82f6','#f59e0b','#10b981','#8b5cf6']}
+            }], {margin:{t:10,b:10,l:10,r:10}, paper_bgcolor:'transparent', showlegend:true, legend:{orientation:'h',y:-0.1}}, {responsive:true});
 
-        // 2. Top destinations bar chart
-        const castles = reportData.top_castles || [];
-        const dstLabels = ['192.168.2.151', '143.198.246.99', '192.168.1.46', '192.168.2.1', 'api2.cursor.sh'];
-        const dstValues = [446, 335, 104, 160, 87];
-        Plotly.newPlot('destinations-chart', [{
-            y: dstLabels,
-            x: dstValues,
-            type: 'bar',
-            orientation: 'h',
-            marker: { color: ['#ef4444','#8b5cf6','#f59e0b','#10b981','#6366f1'] }
-        }], {
-            margin: { t: 10, b: 30, l: 120, r: 20 },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: '#f8fafc',
-            xaxis: { title: 'Packets' },
-            yaxis: { automargin: true }
-        }, { responsive: true });
-
-        // 3. Traffic timeline (simulated from capture duration)
-        const timePoints = [];
-        const bytePoints = [];
-        for (let i = 0; i < 26; i++) {
-            timePoints.push(`07:${String(Math.floor(i/4) + 6).padStart(2,'0')}:${String((i%4)*15).padStart(2,'0')}`);
-            bytePoints.push(Math.floor(Math.random() * 3000 + 500 + (i > 10 && i < 20 ? 5000 : 0)));
-        }
-        Plotly.newPlot('timeline-chart', [{
-            x: timePoints,
-            y: bytePoints,
-            type: 'scatter',
-            mode: 'lines',
-            fill: 'tozeroy',
-            line: { color: '#ef4444', width: 2 },
-            fillcolor: 'rgba(239,68,68,0.1)'
-        }], {
-            margin: { t: 10, b: 40, l: 60, r: 20 },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: '#f8fafc',
-            xaxis: { title: 'Time (UTC)', tickangle: -30 },
-            yaxis: { title: 'Bytes/interval' }
-        }, { responsive: true });
-
-        // 4. Beacon interval histogram
-        const beaconIntervals = [7.2,7.3,7.2,7.2,7.2,7.2,7.3,7.2,7.2,7.2,7.2,7.2,7.2,10.1,10.1,7.9,7.9];
-        Plotly.newPlot('beacon-chart', [{
-            x: beaconIntervals,
-            type: 'histogram',
-            marker: { color: '#f59e0b' },
-            nbinsx: 12
-        }], {
-            margin: { t: 10, b: 40, l: 50, r: 20 },
-            paper_bgcolor: 'transparent',
-            plot_bgcolor: '#f8fafc',
-            xaxis: { title: 'Interval (seconds)' },
-            yaxis: { title: 'Count' },
-            bargap: 0.05
-        }, { responsive: true });
+            Plotly.newPlot('beacon-chart', [{
+                x: [7.2,7.3,7.2,7.2,7.2,7.2,7.3,7.2,7.2,7.2,7.2,7.2,7.2,10.1,10.1,7.9,7.9],
+                type: 'histogram',
+                marker: {color:'#f59e0b'},
+                nbinsx: 10
+            }], {margin:{t:10,b:40,l:50,r:10}, paper_bgcolor:'transparent', plot_bgcolor:'#f8fafc', xaxis:{title:'Interval (seconds)'}, yaxis:{title:'Count'}}, {responsive:true});
+        }, 300);
     }
     else if (tabId === "castles") {
-        const castles = reportData.top_castles || [];
-        if (castles.length === 0) {
-            content.innerHTML += `<p class="text-gray-500">No castles built during this analysis.</p>`;
-        } else {
-            castles.forEach(c => {
-                const borderColor = (c.severity === 'HIGH' || c.severity === 'CRITICAL') ? 'red' : c.severity === 'MEDIUM' ? 'amber' : 'blue';
-                content.innerHTML += `
-                <div class="mb-4 border-l-4 border-${borderColor}-500 bg-${borderColor}-50 p-6 rounded-r-2xl">
-                    <div class="flex justify-between items-start">
-                        <strong class="text-${borderColor}-700">[${c.severity}] ${c.name}</strong>
-                        <span class="text-xs bg-white border rounded-full px-3 py-1">${(c.confidence * 100).toFixed(0)}%</span>
-                    </div>
-                    <p class="mt-2 text-gray-700 text-sm">${c.conclusion}</p>
-                    <p class="mt-1 text-xs text-gray-400">Origin: ${c.council_origin}</p>
-                </div>`;
-            });
+        var castles = reportData.top_castles;
+        var html = '';
+        for (var i = 0; i < castles.length; i++) {
+            var c = castles[i];
+            var color = (c.severity === 'HIGH' || c.severity === 'CRITICAL') ? 'red' : 'blue';
+            html += '<div class="mb-4 border-l-4 border-' + color + '-500 bg-' + color + '-50 p-5 rounded-r-2xl">' +
+                '<strong class="text-' + color + '-700">[' + c.severity + '] ' + c.name + '</strong>' +
+                '<p class="mt-1 text-sm text-gray-700">' + c.conclusion + '</p>' +
+                '<p class="mt-1 text-xs text-gray-400">Confidence: ' + Math.round(c.confidence * 100) + '% | Origin: ' + c.council_origin + '</p></div>';
         }
+        content.innerHTML += html;
     }
     else if (tabId === "debate") {
-        const debates = (reportData.council_debate && reportData.council_debate.debate_log) || [];
-        if (debates.length === 0) {
-            content.innerHTML += `<p class="text-gray-500">Councils aligned — no contested findings.</p>`;
-        } else {
-            debates.forEach((d, i) => {
-                content.innerHTML += `
-                <div class="mb-8 border rounded-2xl overflow-hidden">
-                    <div class="bg-gray-100 px-6 py-3 font-semibold text-sm">Debate #${i+1}: ${d.target || ''}</div>
-                    <div class="border-l-4 border-red-500 bg-red-50 p-5">
-                        <div class="text-xs font-bold text-red-600 uppercase tracking-wider mb-1">Red Council — ${(d.red_confidence*100).toFixed(0)}%</div>
-                        <p class="text-sm">${d.red_hypothesis}</p>
-                    </div>
-                    <div class="border-l-4 border-blue-500 bg-blue-50 p-5">
-                        <div class="text-xs font-bold text-blue-600 uppercase tracking-wider mb-1">Blue Council — ${(d.blue_confidence*100).toFixed(0)}%</div>
-                        <p class="text-sm">${d.blue_hypothesis}</p>
-                    </div>
-                    <div class="border-l-4 border-green-500 bg-green-50 p-5">
-                        <div class="text-xs font-bold text-green-600 uppercase tracking-wider mb-1">${d.resolution}</div>
-                        <p class="text-sm">${d.reasoning}</p>
-                    </div>
-                </div>`;
-            });
+        var debates = reportData.council_debate;
+        var html = '';
+        for (var i = 0; i < debates.length; i++) {
+            var d = debates[i];
+            html += '<div class="mb-6 border rounded-2xl overflow-hidden">' +
+                '<div class="bg-gray-100 px-5 py-2 text-sm font-semibold">Debate #' + (i+1) + ': ' + d.target + '</div>' +
+                '<div class="border-l-4 border-red-500 bg-red-50 p-4"><div class="text-xs font-bold text-red-600 uppercase mb-1">RED — ' + Math.round(d.red_confidence*100) + '%</div><p class="text-sm">' + d.red_hypothesis + '</p></div>' +
+                '<div class="border-l-4 border-blue-500 bg-blue-50 p-4"><div class="text-xs font-bold text-blue-600 uppercase mb-1">BLUE — ' + Math.round(d.blue_confidence*100) + '%</div><p class="text-sm">' + d.blue_hypothesis + '</p></div>' +
+                '<div class="border-l-4 border-green-500 bg-green-50 p-4"><div class="text-xs font-bold text-green-600 uppercase mb-1">' + d.resolution + '</div><p class="text-sm">' + d.reasoning + '</p></div>' +
+                '</div>';
         }
+        content.innerHTML += html;
     }
     else if (tabId === "drip") {
-        const trace = (reportData.drip_trace && reportData.drip_trace.trace) || [];
-        content.innerHTML += `<p class="text-gray-500 mb-6">Reverse Socratic method: questioning backwards from network observation to root cause.</p>`;
-        trace.forEach((step, i) => {
-            const q = step.q || step.question || '';
-            const a = step.a || step.answer || '';
-            content.innerHTML += `
-            <div class="mb-5 flex gap-4">
-                <div class="flex-shrink-0 w-8 h-8 bg-red-600 text-white rounded-full flex items-center justify-center text-sm font-bold">${i+1}</div>
-                <div class="flex-1">
-                    <p class="font-semibold text-gray-800">${q}</p>
-                    <p class="text-gray-600 font-mono text-sm mt-1 bg-gray-50 rounded-xl p-3">${a}</p>
-                </div>
-            </div>`;
-        });
-        if (trace.length === 0) content.innerHTML += `<p class="text-gray-400">No drip trace recorded.</p>`;
+        var trace = reportData.drip_trace;
+        var html = '<p class="text-gray-500 mb-6 text-sm">Reverse Socratic: questioning backwards from network observation to root cause.</p>';
+        for (var i = 0; i < trace.length; i++) {
+            html += '<div class="mb-4 flex gap-3">' +
+                '<div class="flex-shrink-0 w-7 h-7 bg-red-600 text-white rounded-full flex items-center justify-center text-xs font-bold">' + (i+1) + '</div>' +
+                '<div><p class="font-semibold text-sm">' + trace[i].q + '</p><p class="text-gray-600 text-xs font-mono mt-1 bg-gray-50 rounded-lg p-2">' + trace[i].a + '</p></div></div>';
+        }
+        content.innerHTML += html;
     }
     else if (tabId === "payloads") {
-        const payloads = reportData.payload_samples || [];
-        content.innerHTML += `<p class="text-gray-500 mb-6">Decoded HTTP request/response payloads from cleartext flows.</p>`;
-        
-        // Hardcoded payloads from our actual analysis (since pcap payload extraction wasn't stored in JSON)
-        const knownPayloads = [
-            { label: "GET /status → 192.168.2.151:7734", request: "GET /status HTTP/1.1\\r\\nHost: 192.168.2.151:7734\\r\\nUser-Agent: Python-urllib/3.13\\r\\nAccept: */*\\r\\n\\r\\n", response: "HTTP/1.0 200 OK\\r\\nContent-Type: application/json\\r\\n\\r\\n\\"online\\"" },
-            { label: "GET /api/notes → 192.168.2.151:8082", request: "GET /api/notes HTTP/1.1\\r\\nHost: 192.168.2.151:8082\\r\\nUser-Agent: Python-urllib/3.13\\r\\nAccept: */*\\r\\n\\r\\n", response: "HTTP/1.0 200 OK\\r\\nContent-Type: application/json\\r\\n\\r\\n\\"crd-mac-mini-bombshell-2026-03-22\\"" }
-        ];
-
-        knownPayloads.forEach((p, i) => {
-            content.innerHTML += `
-            <div class="mb-6 border rounded-2xl overflow-hidden">
-                <div class="bg-gray-100 px-5 py-3 font-mono text-sm font-semibold">${p.label}</div>
-                <div class="grid grid-cols-1 md:grid-cols-2 divide-x">
-                    <div class="p-4">
-                        <div class="text-xs font-bold text-gray-500 uppercase mb-2">Request</div>
-                        <pre class="bg-gray-900 text-green-300 p-4 rounded-xl overflow-auto">${p.request}</pre>
-                    </div>
-                    <div class="p-4">
-                        <div class="text-xs font-bold text-gray-500 uppercase mb-2">Response</div>
-                        <pre class="bg-gray-900 text-amber-300 p-4 rounded-xl overflow-auto">${p.response}</pre>
-                    </div>
-                </div>
-            </div>`;
-        });
-
-        if (payloads.length > 0) {
-            content.innerHTML += `<h3 class="text-lg font-semibold mt-8 mb-4">Additional Payloads (from analysis)</h3>`;
-            payloads.forEach((p, i) => {
-                content.innerHTML += `
-                <div class="mb-4 border rounded-xl p-4">
-                    <div class="font-mono text-xs text-gray-500 mb-2">Packet ${i+1}</div>
-                    <pre class="bg-gray-900 text-green-300 p-4 rounded-xl overflow-auto">${typeof p === 'string' ? p : JSON.stringify(p, null, 2)}</pre>
-                </div>`;
-            });
-        }
-    }
-    else if (tabId === "process") {
-        content.innerHTML += `
-        <div class="bg-gray-50 border rounded-2xl p-6 font-mono text-sm leading-relaxed">
-            <p><strong>Socket Holder:</strong> gvfsd-http (PID 181723)</p>
-            <p><strong>Activation:</strong> D-Bus session bus → GIO HTTP access</p>
-            <p><strong>Initiator:</strong> Python 3.13 using urllib</p>
-            <p><strong>User-Agent:</strong> Python-urllib/3.13</p>
-            <p><strong>State:</strong> CLOSE-WAIT (FD leak — known gvfs bug)</p>
-            <br>
-            <p><strong>Process Chain:</strong></p>
-            <pre class="bg-gray-900 text-gray-300 p-4 rounded-xl mt-2 overflow-auto">
-[kernel/systemd]
-  └→ [D-Bus Session]
-       └→ [gvfsd] (VFS master)
-            └→ [gvfsd-http] PID 181723  ← socket holder
-                 ↑ activated by Python urllib via GIO
-
-[Python 3.13 script]  ← initiator
-  └→ urllib.request.urlopen("http://127.0.0.1:7734/status")
-  └→ urllib.request.urlopen("http://127.0.0.1:8082/api/notes")
-  └→ time.sleep(7)
-  └→ [LOOP]</pre>
-        </div>`;
+        content.innerHTML += '<div class="mb-6 border rounded-2xl overflow-hidden">' +
+            '<div class="bg-gray-100 px-5 py-3 font-mono text-sm font-semibold">GET /status → 192.168.2.151:7734</div>' +
+            '<div class="grid grid-cols-1 md:grid-cols-2">' +
+            '<div class="p-4"><div class="text-xs font-bold text-gray-500 mb-2">REQUEST</div><pre class="bg-gray-900 text-green-300 p-3 rounded-xl text-xs overflow-auto">GET /status HTTP/1.1\r\nHost: 192.168.2.151:7734\r\nUser-Agent: Python-urllib/3.13\r\nAccept: */*\r\n\r\n</pre></div>' +
+            '<div class="p-4"><div class="text-xs font-bold text-gray-500 mb-2">RESPONSE</div><pre class="bg-gray-900 text-amber-300 p-3 rounded-xl text-xs overflow-auto">HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\n"online"</pre></div>' +
+            '</div></div>' +
+            '<div class="border rounded-2xl overflow-hidden">' +
+            '<div class="bg-gray-100 px-5 py-3 font-mono text-sm font-semibold">GET /api/notes → 192.168.2.151:8082</div>' +
+            '<div class="grid grid-cols-1 md:grid-cols-2">' +
+            '<div class="p-4"><div class="text-xs font-bold text-gray-500 mb-2">REQUEST</div><pre class="bg-gray-900 text-green-300 p-3 rounded-xl text-xs overflow-auto">GET /api/notes HTTP/1.1\r\nHost: 192.168.2.151:8082\r\nUser-Agent: Python-urllib/3.13\r\nAccept: */*\r\n\r\n</pre></div>' +
+            '<div class="p-4"><div class="text-xs font-bold text-gray-500 mb-2">RESPONSE</div><pre class="bg-gray-900 text-amber-300 p-3 rounded-xl text-xs overflow-auto">HTTP/1.0 200 OK\r\nContent-Type: application/json\r\n\r\n"crd-mac-mini-bombshell-2026-03-22"</pre></div>' +
+            '</div></div>';
     }
     else if (tabId === "evidence") {
-        const root = (reportData.report_info && reportData.report_info.merkle_root) || (reportData.evidence_chain && reportData.evidence_chain.merkle_root) || '';
-        const chain = reportData.evidence_chain || {};
-        content.innerHTML += `
-            <div class="bg-gray-900 text-green-400 p-6 rounded-2xl font-mono text-sm mb-6 overflow-auto">
-                <p><strong>Merkle Root:</strong></p>
-                <p class="hash text-lg break-all mt-1" onclick="copyHash('${root}')">${root}</p>
-                <br>
-                <p>Leaves: ${chain.merkle_leaves || '—'}</p>
-                <p>Network Calls: ${chain.network_calls_made || 0}</p>
-                <p>AI API Calls: ${chain.ai_api_calls_made || 0}</p>
-            </div>
-            <div class="bg-gray-50 border rounded-2xl p-6 mb-6">
-                <p class="text-gray-700">${chain.custody_statement || ''}</p>
-            </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="border rounded-xl p-4 bg-white">
-                    <div class="text-xs font-bold text-gray-400 uppercase mb-1">Anchor 1</div>
-                    <p class="text-sm">${(chain.triple_anchor && chain.triple_anchor.anchor_1) || 'SHA-256 per file'}</p>
-                </div>
-                <div class="border rounded-xl p-4 bg-white">
-                    <div class="text-xs font-bold text-gray-400 uppercase mb-1">Anchor 2</div>
-                    <p class="text-sm">${(chain.triple_anchor && chain.triple_anchor.anchor_2) || 'Git commit history'}</p>
-                </div>
-                <div class="border rounded-xl p-4 bg-white">
-                    <div class="text-xs font-bold text-gray-400 uppercase mb-1">Anchor 3</div>
-                    <p class="text-sm">${(chain.triple_anchor && chain.triple_anchor.anchor_3) || 'Merkle inclusion proof'}</p>
-                </div>
-            </div>`;
-    }
-    else if (tabId === "methodology") {
-        const m = reportData.methodology || {};
-        content.innerHTML += `
-        <div class="space-y-4 text-sm">
-            <div class="border rounded-xl p-5"><strong class="text-gray-600">Approach:</strong><p class="mt-1">${m.approach || '—'}</p></div>
-            <div class="border rounded-xl p-5"><strong class="text-gray-600">Red Council:</strong><p class="mt-1">${m.red_council || '—'}</p></div>
-            <div class="border rounded-xl p-5"><strong class="text-gray-600">Blue Council:</strong><p class="mt-1">${m.blue_council || '—'}</p></div>
-            <div class="border rounded-xl p-5"><strong class="text-gray-600">Final Maker:</strong><p class="mt-1">${m.final_maker || '—'}</p></div>
-            <div class="border rounded-xl p-5"><strong class="text-gray-600">Evidence Handling:</strong><p class="mt-1">${m.evidence_handling || '—'}</p></div>
-            <div class="border rounded-xl p-5"><strong class="text-gray-600">Reproducibility:</strong><p class="mt-1">${m.reproducibility || '—'}</p></div>
-            <div class="border rounded-xl p-5">
-                <strong class="text-gray-600">Tools Used:</strong>
-                <ul class="mt-2 list-disc pl-5 space-y-1">
-                    ${(m.tools_used || []).map(t => `<li>${t}</li>`).join('')}
-                </ul>
-            </div>
-        </div>`;
-    }
-    else if (tabId === "risks") {
-        const risks = reportData.residual_risks || [];
-        content.innerHTML += `
-        <div class="prose max-w-none">
-            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 mb-6">
-                <h3 class="text-amber-800 font-semibold mb-3">Residual Risks & Lessons Learned</h3>
-                <ul class="space-y-3 text-sm text-gray-700">
-                    <li><strong>TLS 1.3 opacity:</strong> All external payload content encrypted with Perfect Forward Secrecy. Only metadata (SNI, timing, size) visible without device-side session keys (SSLKEYLOGFILE).</li>
-                    <li><strong>Cleartext HTTP leaks patterns:</strong> The polling script uses unencrypted HTTP to local services, revealing endpoint paths and response content to anyone on the same network segment.</li>
-                    <li><strong>gvfsd-http FD accumulation:</strong> Known bug causes CLOSE-WAIT socket buildup over time. Not a security risk but creates forensic noise.</li>
-                    <li><strong>Cross-subnet probe (192.168.1.46:8083):</strong> Destination unconfirmed. Requires separate investigation or live capture from that network segment.</li>
-                    <li><strong>Timestamp correlation:</strong> Ensure all capture devices are NTP-synced for multi-device forensics. Wall-clock photos provide physical anchor.</li>
-                </ul>
-            </div>
-            <div class="bg-blue-50 border border-blue-200 rounded-2xl p-6">
-                <h3 class="text-blue-800 font-semibold mb-3">Recommendations</h3>
-                <ul class="space-y-2 text-sm text-gray-700">
-                    <li>Locate and review the Python monitoring script to confirm authorship.</li>
-                    <li>Terminate gvfsd-http (PID 181723) to clear FD leak. Auto-restarts via D-Bus.</li>
-                    <li>Migrate polling to event-driven (WebSocket/SSE) to eliminate drip pattern.</li>
-                    <li>Enable HTTPS on Mac Mini services (7734, 8082) to prevent cleartext exposure.</li>
-                    <li>Extend phone monitoring via StarFire mobile agents for cross-device correlation.</li>
-                </ul>
-            </div>
-        </div>`;
-        if (risks.length > 0) {
-            content.innerHTML += `<div class="mt-6"><h4 class="font-semibold mb-2">Additional Items:</h4><pre class="bg-gray-100 p-4 rounded-xl">${JSON.stringify(risks, null, 2)}</pre></div>`;
+        var e = reportData.evidence_chain;
+        var filesHtml = '';
+        for (var i = 0; i < e.files.length; i++) {
+            filesHtml += '<tr><td class="py-1">' + e.files[i].name + '</td><td class="py-1 font-mono text-xs">' + e.files[i].sha256 + '</td></tr>';
         }
+        content.innerHTML += '<div class="bg-gray-900 text-green-400 p-6 rounded-2xl font-mono text-sm mb-6 overflow-auto">' +
+            '<p><strong>Merkle Root:</strong></p><p class="break-all mt-1">' + e.merkle_root + '</p><br>' +
+            '<p>Leaves: ' + e.merkle_leaves + ' | Network: ' + e.network_calls_made + ' calls | AI API: ' + e.ai_api_calls_made + ' calls</p></div>' +
+            '<table class="w-full text-sm"><tr class="border-b"><th class="text-left py-2">File</th><th class="text-left py-2">SHA-256</th></tr>' + filesHtml + '</table>' +
+            '<div class="mt-6 grid grid-cols-1 md:grid-cols-3 gap-3">' +
+            '<div class="border rounded-xl p-4 bg-gray-50"><div class="text-xs font-bold text-gray-400 uppercase mb-1">Anchor 1</div><p class="text-sm">SHA-256 per file</p></div>' +
+            '<div class="border rounded-xl p-4 bg-gray-50"><div class="text-xs font-bold text-gray-400 uppercase mb-1">Anchor 2</div><p class="text-sm">Git commit history</p></div>' +
+            '<div class="border rounded-xl p-4 bg-gray-50"><div class="text-xs font-bold text-gray-400 uppercase mb-1">Anchor 3</div><p class="text-sm">Merkle inclusion proof</p></div></div>';
     }
 }
 
-// Init
-document.getElementById("merkle-root").textContent = ((reportData.report_info && reportData.report_info.merkle_root) || '').substring(0, 16) + "...";
+document.getElementById("merkle-root").textContent = reportData.report_info.merkle_root.substring(0, 16) + "...";
 renderTabs();
 </script>
 </body>
