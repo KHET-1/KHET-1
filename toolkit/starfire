@@ -60,11 +60,14 @@ Examples:
     mode = "OFFLINE ZERO-AI" if not args.local_llm else "OFFLINE + LOCAL LLM"
     trace = args.trace
 
-    print(f"StarFire Forensic Analyzer — KHET-1")
-    print(f"Mode: {mode}")
-    print(f"Network: BLOCKED")
+    print(f"")
+    print(f"  STARFIRE — Light Forged in Evidence")
+    print(f"  LATTICE TEAM — KHET-1")
+    print(f"")
+    print(f"  Mode:    {mode}")
+    print(f"  Network: BLOCKED")
     if trace:
-        print(f"Trace: ENABLED (crystalline data flow audit)")
+        print(f"  Trace:   ENABLED (crystalline data flow audit)")
     print()
 
     # Collect pcap files

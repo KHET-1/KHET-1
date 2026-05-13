@@ -39,7 +39,7 @@ class StarFireReport:
 
         self.data = {
             "report_info": {
-                "title": "StarFire Forensic Network Report",
+                "title": "StarFire Report — Light Forged in Evidence",
                 "operation": "LATTICE TEAM — KHET-1",
                 "generated": self.timestamp,
                 "mode": mode,
