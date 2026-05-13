@@ -8,7 +8,9 @@
     <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
     <style>
         body { font-family: system-ui, sans-serif; }
-        .tab-button.active { border-bottom: 4px solid #b91c1c; font-weight: 700; }
+        .tab-button.active { border-bottom: 4px solid #b91c1c; font-weight: 700; color: #b91c1c; }
+        .plotly-chart { border-radius: 12px; box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+        .js-plotly-plot .plotly .modebar { top: 5px !important; right: 5px !important; }
     </style>
 </head>
 <body class="bg-gray-50">
@@ -147,36 +149,70 @@ function openTab(tabId) {
     }
     else if (tabId === "timeline") {
         content.innerHTML += '<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">' +
-            '<div><h3 class="text-lg font-semibold mb-3">Traffic Volume</h3><div id="timeline-chart" style="height:300px;"></div></div>' +
-            '<div><h3 class="text-lg font-semibold mb-3">Protocol Distribution</h3><div id="protocol-chart" style="height:300px;"></div></div>' +
+            '<div><h3 class="text-lg font-semibold mb-3">Traffic Volume</h3><div id="timeline-chart" class="plotly-chart" style="height:320px;"></div></div>' +
+            '<div><h3 class="text-lg font-semibold mb-3">Protocol Distribution</h3><div id="protocol-chart" class="plotly-chart" style="height:320px;"></div></div>' +
             '</div>' +
-            '<div><h3 class="text-lg font-semibold mb-3">Beacon Intervals (port 7734)</h3><div id="beacon-chart" style="height:250px;"></div></div>';
+            '<div class="mb-4 flex items-center justify-between"><h3 class="text-lg font-semibold">Beacon Intervals (port 7734)</h3>' +
+            '<button onclick="Plotly.relayout(\'beacon-chart\',{\'xaxis.autorange\':true,\'yaxis.autorange\':true})" class="text-xs px-3 py-1 bg-gray-100 border rounded-lg hover:bg-gray-200">Reset Zoom</button></div>' +
+            '<div id="beacon-chart" class="plotly-chart" style="height:260px;"></div>';
 
         setTimeout(function() {
+            var chartConfig = {
+                displayModeBar: true,
+                responsive: true,
+                displaylogo: false,
+                modeBarButtonsToRemove: ['lasso2d','select2d','hoverClosestCartesian','hoverCompareCartesian'],
+                toImageButtonOptions: {format:'png', filename:'starfire_chart', height:800, width:1200, scale:2}
+            };
+
             Plotly.newPlot('timeline-chart', [{
                 x: reportData.timeline.times,
                 y: reportData.timeline.bytes,
                 type: 'scatter',
                 mode: 'lines+markers',
                 fill: 'tozeroy',
-                line: {color: '#b91c1c', width: 2},
-                fillcolor: 'rgba(185,28,28,0.1)'
-            }], {margin:{t:10,b:40,l:50,r:10}, paper_bgcolor:'transparent', plot_bgcolor:'#f8fafc', xaxis:{title:'Time (UTC)'}, yaxis:{title:'Bytes'}}, {responsive:true});
+                line: {color: '#b91c1c', width: 3},
+                marker: {size: 7, symbol: 'circle'},
+                fillcolor: 'rgba(185,28,28,0.08)'
+            }], {
+                margin:{t:30,b:50,l:60,r:20},
+                paper_bgcolor:'transparent',
+                plot_bgcolor:'#f8fafc',
+                xaxis:{title:'Time (UTC)', showgrid:true, gridcolor:'#e5e7eb'},
+                yaxis:{title:'Bytes Transferred', showgrid:true, gridcolor:'#e5e7eb'},
+                font:{family:'system-ui, sans-serif'}
+            }, chartConfig);
 
             Plotly.newPlot('protocol-chart', [{
                 values: reportData.protocols.values,
                 labels: reportData.protocols.labels,
                 type: 'pie',
                 hole: 0.4,
-                marker: {colors:['#ef4444','#3b82f6','#f59e0b','#10b981','#8b5cf6']}
-            }], {margin:{t:10,b:10,l:10,r:10}, paper_bgcolor:'transparent', showlegend:true, legend:{orientation:'h',y:-0.1}}, {responsive:true});
+                marker: {colors:['#b91c1c','#3b82f6','#f59e0b','#10b981','#64748b']},
+                textinfo: 'label+percent',
+                textfont: {size: 12}
+            }], {
+                margin:{t:20,b:20,l:20,r:20},
+                paper_bgcolor:'transparent',
+                showlegend:true,
+                legend:{orientation:'h', y:-0.15, font:{size:11}},
+                font:{family:'system-ui, sans-serif'}
+            }, chartConfig);
 
             Plotly.newPlot('beacon-chart', [{
                 x: [7.2,7.3,7.2,7.2,7.2,7.2,7.3,7.2,7.2,7.2,7.2,7.2,7.2,10.1,10.1,7.9,7.9],
                 type: 'histogram',
-                marker: {color:'#f59e0b'},
-                nbinsx: 10
-            }], {margin:{t:10,b:40,l:50,r:10}, paper_bgcolor:'transparent', plot_bgcolor:'#f8fafc', xaxis:{title:'Interval (seconds)'}, yaxis:{title:'Count'}}, {responsive:true});
+                marker: {color:'#f59e0b', line:{color:'#d97706',width:1}},
+                nbinsx: 12
+            }], {
+                margin:{t:20,b:50,l:50,r:20},
+                paper_bgcolor:'transparent',
+                plot_bgcolor:'#f8fafc',
+                xaxis:{title:'Interval (seconds)', showgrid:true, gridcolor:'#e5e7eb'},
+                yaxis:{title:'Count', showgrid:true, gridcolor:'#e5e7eb'},
+                bargap:0.05,
+                font:{family:'system-ui, sans-serif'}
+            }, chartConfig);
         }, 300);
     }
     else if (tabId === "castles") {
