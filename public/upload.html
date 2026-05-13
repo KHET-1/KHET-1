@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>StarFire — Upload & Analyze</title>
+<style>
+:root { --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a2e; --accent:#ff6b35; --accent2:#ff9f6b; --text:#e8e8f0; --text2:#a0a0b8; --muted:#6a6a80; --border:#2a2a40; --success:#4ade80; --warning:#fbbf24; --danger:#f87171; --mono:'JetBrains Mono',monospace; --sans:'Inter',sans-serif; }
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:var(--sans); background:var(--bg); color:var(--text); min-height:100vh; }
+
+.header { background:linear-gradient(135deg, #450a0a, #7f1d1d); padding:2rem; text-align:center; }
+.header h1 { font-size:2.5rem; font-weight:800; color:#fff; margin-bottom:0.3rem; }
+.header .tagline { color:#fca5a5; font-size:0.9rem; }
+.header .mode-badge { display:inline-block; margin-top:0.75rem; padding:0.4rem 1rem; background:rgba(255,255,255,0.1); backdrop-filter:blur(8px); border-radius:20px; font-family:var(--mono); font-size:0.75rem; color:#fff; }
+
+.container { max-width:800px; margin:0 auto; padding:2rem; }
+
+nav { display:flex; gap:1rem; margin-bottom:2rem; }
+nav a { color:var(--accent); text-decoration:none; font-size:0.85rem; }
+
+.upload-zone {
+    border:2px dashed var(--border);
+    border-radius:16px;
+    padding:3rem;
+    text-align:center;
+    cursor:pointer;
+    transition:all 0.2s;
+    background:var(--bg2);
+    margin-bottom:2rem;
+}
+.upload-zone:hover, .upload-zone.dragover {
+    border-color:var(--accent);
+    background:rgba(255,107,53,0.05);
+}
+.upload-zone h2 { font-size:1.2rem; margin-bottom:0.5rem; }
+.upload-zone p { color:var(--muted); font-size:0.85rem; }
+.upload-zone input { display:none; }
+.upload-zone .icon { font-size:3rem; margin-bottom:1rem; }
+
+.file-list { margin-bottom:1.5rem; }
+.file-item {
+    display:flex; align-items:center; gap:0.75rem;
+    padding:0.75rem 1rem; background:var(--bg3); border:1px solid var(--border);
+    border-radius:8px; margin-bottom:0.5rem; font-size:0.85rem;
+}
+.file-item .name { flex:1; font-family:var(--mono); font-size:0.8rem; }
+.file-item .size { color:var(--muted); font-size:0.75rem; }
+.file-item .remove { color:var(--danger); cursor:pointer; font-size:0.8rem; }
+
+.options { background:var(--bg3); border:1px solid var(--border); border-radius:12px; padding:1.5rem; margin-bottom:2rem; }
+.options h3 { font-size:0.9rem; margin-bottom:1rem; }
+.option-row { display:flex; align-items:center; gap:0.75rem; margin-bottom:0.75rem; font-size:0.85rem; }
+.option-row input[type="text"] { background:var(--bg2); border:1px solid var(--border); border-radius:6px; padding:0.4rem 0.8rem; color:var(--text); font-size:0.8rem; flex:1; }
+.option-row label { color:var(--text2); min-width:120px; }
+.toggle { position:relative; width:40px; height:22px; background:var(--border); border-radius:11px; cursor:pointer; transition:background 0.2s; }
+.toggle.active { background:var(--accent); }
+.toggle::after { content:''; position:absolute; top:2px; left:2px; width:18px; height:18px; background:#fff; border-radius:50%; transition:left 0.2s; }
+.toggle.active::after { left:20px; }
+
+.btn { display:inline-block; padding:0.75rem 2rem; background:var(--accent); color:#fff; border:none; border-radius:8px; font-weight:600; font-size:1rem; cursor:pointer; transition:opacity 0.2s; }
+.btn:hover { opacity:0.85; }
+.btn:disabled { opacity:0.4; cursor:not-allowed; }
+.btn-secondary { background:none; border:1px solid var(--accent); color:var(--accent); }
+
+.progress-container { display:none; margin:2rem 0; }
+.progress-bar { height:6px; background:var(--border); border-radius:3px; overflow:hidden; }
+.progress-fill { height:100%; background:var(--accent); border-radius:3px; transition:width 0.3s; width:0%; }
+.progress-status { margin-top:0.5rem; font-size:0.8rem; color:var(--text2); font-family:var(--mono); }
+
+.result { display:none; background:var(--bg3); border:1px solid var(--success); border-radius:12px; padding:2rem; margin-top:2rem; }
+.result h3 { color:var(--success); margin-bottom:1rem; }
+.result .verdict { font-size:1.3rem; font-weight:700; margin-bottom:0.5rem; }
+.result .merkle { font-family:var(--mono); font-size:0.75rem; color:var(--muted); word-break:break-all; margin:0.5rem 0; }
+.result .links { margin-top:1rem; display:flex; gap:0.75rem; flex-wrap:wrap; }
+.result .links a { padding:0.4rem 1rem; background:var(--bg2); border:1px solid var(--border); border-radius:6px; color:var(--accent); text-decoration:none; font-size:0.8rem; }
+
+.error { display:none; background:rgba(248,113,113,0.1); border:1px solid var(--danger); border-radius:8px; padding:1rem; margin-top:1rem; color:var(--danger); font-size:0.85rem; }
+
+.size-warning { display:none; color:var(--warning); font-size:0.8rem; margin-top:0.5rem; }
+</style>
+</head>
+<body>
+
+<div class="header">
+    <h1>STARFIRE</h1>
+    <div class="tagline">Light Forged in Evidence</div>
+    <div class="mode-badge">Upload • Analyze • Report</div>
+</div>
+
+<div class="container">
+    <nav>
+        <a href="/">Lattice IDE</a>
+        <a href="/report-formal.html">Formal Report</a>
+        <a href="/agents/">Agents</a>
+        <a href="/agents/results.html">Incoming</a>
+    </nav>
+
+    <div class="upload-zone" id="dropZone">
+        <div class="icon">📁</div>
+        <h2>Drop PCAP / PCAPNG files here</h2>
+        <p>or click to select files (max 50MB per file)</p>
+        <input type="file" id="fileInput" multiple accept=".pcap,.pcapng,.cap">
+        <div class="size-warning" id="sizeWarning">File exceeds 50MB — may fail on serverless. Consider using the CLI toolkit for large captures.</div>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+
+    <div class="options">
+        <h3>Analysis Options</h3>
+        <div class="option-row">
+            <label>Case Name:</label>
+            <input type="text" id="caseName" placeholder="e.g., KHET-1 Phone Forensics">
+        </div>
+        <div class="option-row">
+            <label>Description:</label>
+            <input type="text" id="caseDesc" placeholder="Optional notes about this capture">
+        </div>
+        <div class="option-row">
+            <label>Redact IPs:</label>
+            <div class="toggle" id="toggleRedact" onclick="this.classList.toggle('active')"></div>
+            <span style="color:var(--muted);font-size:0.8rem;">Anonymize internal (RFC1918) addresses in output</span>
+        </div>
+        <div class="option-row">
+            <label>Device ID:</label>
+            <input type="text" id="deviceId" placeholder="e.g., company-phone-1">
+        </div>
+    </div>
+
+    <button class="btn" id="analyzeBtn" disabled onclick="submitAnalysis()">Analyze</button>
+    <button class="btn btn-secondary" style="margin-left:0.5rem;" onclick="clearFiles()">Clear</button>
+
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+        <div class="progress-status" id="progressStatus">Uploading...</div>
+    </div>
+
+    <div class="error" id="errorBox"></div>
+
+    <div class="result" id="resultBox">
+        <h3>Analysis Complete</h3>
+        <div class="verdict" id="resultVerdict"></div>
+        <div class="merkle" id="resultMerkle"></div>
+        <p id="resultSummary" style="color:var(--text2);font-size:0.9rem;"></p>
+        <div class="links" id="resultLinks"></div>
+    </div>
+</div>
+
+<script>
+let files = [];
+
+const dropZone = document.getElementById('dropZone');
+const fileInput = document.getElementById('fileInput');
+const fileList = document.getElementById('fileList');
+const analyzeBtn = document.getElementById('analyzeBtn');
+const sizeWarning = document.getElementById('sizeWarning');
+
+// Drag & drop
+dropZone.addEventListener('click', () => fileInput.click());
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    addFiles(e.dataTransfer.files);
+});
+fileInput.addEventListener('change', e => addFiles(e.target.files));
+
+function addFiles(newFiles) {
+    for (const f of newFiles) {
+        if (f.name.match(/\.(pcap|pcapng|cap)$/i)) {
+            files.push(f);
+            if (f.size > 50 * 1024 * 1024) {
+                sizeWarning.style.display = 'block';
+            }
+        }
+    }
+    renderFileList();
+}
+
+function renderFileList() {
+    fileList.innerHTML = files.map((f, i) => `
+        <div class="file-item">
+            <span class="name">${f.name}</span>
+            <span class="size">${(f.size / 1024 / 1024).toFixed(2)} MB</span>
+            <span class="remove" onclick="removeFile(${i})">remove</span>
+        </div>
+    `).join('');
+    analyzeBtn.disabled = files.length === 0;
+}
+
+function removeFile(idx) {
+    files.splice(idx, 1);
+    renderFileList();
+    if (!files.some(f => f.size > 50*1024*1024)) sizeWarning.style.display = 'none';
+}
+
+function clearFiles() {
+    files = [];
+    renderFileList();
+    sizeWarning.style.display = 'none';
+    document.getElementById('resultBox').style.display = 'none';
+    document.getElementById('errorBox').style.display = 'none';
+}
+
+async function submitAnalysis() {
+    const progressContainer = document.getElementById('progressContainer');
+    const progressFill = document.getElementById('progressFill');
+    const progressStatus = document.getElementById('progressStatus');
+    const errorBox = document.getElementById('errorBox');
+    const resultBox = document.getElementById('resultBox');
+
+    errorBox.style.display = 'none';
+    resultBox.style.display = 'none';
+    progressContainer.style.display = 'block';
+    analyzeBtn.disabled = true;
+
+    try {
+        // Upload each file
+        const results = [];
+        for (let i = 0; i < files.length; i++) {
+            const f = files[i];
+            const pct = ((i / files.length) * 80).toFixed(0);
+            progressFill.style.width = pct + '%';
+            progressStatus.textContent = `Uploading ${f.name} (${i+1}/${files.length})...`;
+
+            const deviceId = document.getElementById('deviceId').value || `upload-${Date.now()}`;
+            const caseName = document.getElementById('caseName').value || 'Unnamed';
+
+            const response = await fetch('/api/ingest', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/octet-stream',
+                    'X-Device-ID': deviceId,
+                    'X-Capture-Time': new Date().toISOString(),
+                    'X-Case-Name': caseName
+                },
+                body: f
+            });
+
+            const data = await response.json();
+            results.push(data);
+        }
+
+        progressFill.style.width = '100%';
+        progressStatus.textContent = 'Analysis complete.';
+
+        // Show results
+        const lastResult = results[results.length - 1];
+        document.getElementById('resultVerdict').textContent = 
+            `${files.length} capture(s) submitted successfully`;
+        document.getElementById('resultMerkle').textContent = 
+            `Capture IDs: ${results.map(r => r.id).join(', ')}`;
+        document.getElementById('resultSummary').textContent = 
+            `Total size: ${(files.reduce((s,f) => s + f.size, 0) / 1024 / 1024).toFixed(2)} MB | ` +
+            `Device: ${document.getElementById('deviceId').value || 'auto'} | ` +
+            `Case: ${document.getElementById('caseName').value || 'unnamed'}`;
+
+        const linksDiv = document.getElementById('resultLinks');
+        linksDiv.innerHTML = `
+            <a href="/agents/results.html">View Results Dashboard</a>
+            <a href="/api/ingest">Raw API Response (JSON)</a>
+            <a href="/">Back to Lattice IDE</a>
+        `;
+
+        resultBox.style.display = 'block';
+
+    } catch (err) {
+        errorBox.textContent = `Upload failed: ${err.message}. For large files, use the CLI: ./starfire analyze your_file.pcap`;
+        errorBox.style.display = 'block';
+    } finally {
+        analyzeBtn.disabled = false;
+    }
+}
+</script>
+</body>
+</html>
