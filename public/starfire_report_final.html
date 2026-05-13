@@ -258,12 +258,12 @@ function copyHash(text) {
 function openTab(tabId) {
     document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
     document.querySelectorAll('.tab-button').forEach(b => {
-        if (b.textContent === tabs.find(t => t.id === tabId)?.name) b.classList.add('active');
+        if (b.textContent === (tabs.find(t => t.id === tabId) || {}).name) b.classList.add('active');
     });
 
     const content = document.getElementById("content");
     const section = tabs.find(t => t.id === tabId);
-    content.innerHTML = `<h2 class="text-2xl md:text-3xl font-bold mb-6 text-gray-800">${section?.name || tabId}</h2>`;
+    content.innerHTML = `<h2 class="text-2xl md:text-3xl font-bold mb-6 text-gray-800">${section && section.name || tabId}</h2>`;
 
     if (tabId === "summary") {
         const s = reportData.executive_summary || {};
@@ -322,14 +322,14 @@ function openTab(tabId) {
             <div class="bg-gray-50 border rounded-2xl p-6">
                 <strong>Capture Info:</strong>
                 <table class="w-full mt-3 text-sm">
-                    <tr><td class="text-gray-500 pr-4">First Packet:</td><td class="font-mono">${reportData.timeline?.first_packet || '—'}</td></tr>
-                    <tr><td class="text-gray-500 pr-4">Last Packet:</td><td class="font-mono">${reportData.timeline?.last_packet || '—'}</td></tr>
-                    <tr><td class="text-gray-500 pr-4">Duration:</td><td>${reportData.executive_summary?.duration || '—'}</td></tr>
+                    <tr><td class="text-gray-500 pr-4">First Packet:</td><td class="font-mono">${(reportData.timeline && reportData.timeline.first_packet) || '—'}</td></tr>
+                    <tr><td class="text-gray-500 pr-4">Last Packet:</td><td class="font-mono">${(reportData.timeline && reportData.timeline.last_packet) || '—'}</td></tr>
+                    <tr><td class="text-gray-500 pr-4">Duration:</td><td>${(reportData.executive_summary && reportData.executive_summary.duration) || '—'}</td></tr>
                 </table>
             </div>`;
 
         // 1. Protocol pie chart
-        const protocols = reportData.visuals?.protocol_pie || reportData.timeline?.protocol_distribution || {};
+        const protocols = (reportData.visuals && reportData.visuals.protocol_pie) || (reportData.timeline && reportData.timeline.protocol_distribution) || {};
         if (Object.keys(protocols).length > 0) {
             Plotly.newPlot('protocol-chart', [{
                 values: Object.values(protocols),
@@ -423,7 +423,7 @@ function openTab(tabId) {
         }
     }
     else if (tabId === "debate") {
-        const debates = reportData.council_debate?.debate_log || [];
+        const debates = (reportData.council_debate && reportData.council_debate.debate_log) || [];
         if (debates.length === 0) {
             content.innerHTML += `<p class="text-gray-500">Councils aligned — no contested findings.</p>`;
         } else {
@@ -448,7 +448,7 @@ function openTab(tabId) {
         }
     }
     else if (tabId === "drip") {
-        const trace = reportData.drip_trace?.trace || [];
+        const trace = (reportData.drip_trace && reportData.drip_trace.trace) || [];
         content.innerHTML += `<p class="text-gray-500 mb-6">Reverse Socratic method: questioning backwards from network observation to root cause.</p>`;
         trace.forEach((step, i) => {
             const q = step.q || step.question || '';
@@ -527,7 +527,7 @@ function openTab(tabId) {
         </div>`;
     }
     else if (tabId === "evidence") {
-        const root = reportData.report_info?.merkle_root || reportData.evidence_chain?.merkle_root || '';
+        const root = (reportData.report_info && reportData.report_info.merkle_root) || (reportData.evidence_chain && reportData.evidence_chain.merkle_root) || '';
         const chain = reportData.evidence_chain || {};
         content.innerHTML += `
             <div class="bg-gray-900 text-green-400 p-6 rounded-2xl font-mono text-sm mb-6 overflow-auto">
@@ -544,15 +544,15 @@ function openTab(tabId) {
             <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div class="border rounded-xl p-4 bg-white">
                     <div class="text-xs font-bold text-gray-400 uppercase mb-1">Anchor 1</div>
-                    <p class="text-sm">${chain.triple_anchor?.anchor_1 || 'SHA-256 per file'}</p>
+                    <p class="text-sm">${(chain.triple_anchor && chain.triple_anchor.anchor_1) || 'SHA-256 per file'}</p>
                 </div>
                 <div class="border rounded-xl p-4 bg-white">
                     <div class="text-xs font-bold text-gray-400 uppercase mb-1">Anchor 2</div>
-                    <p class="text-sm">${chain.triple_anchor?.anchor_2 || 'Git commit history'}</p>
+                    <p class="text-sm">${(chain.triple_anchor && chain.triple_anchor.anchor_2) || 'Git commit history'}</p>
                 </div>
                 <div class="border rounded-xl p-4 bg-white">
                     <div class="text-xs font-bold text-gray-400 uppercase mb-1">Anchor 3</div>
-                    <p class="text-sm">${chain.triple_anchor?.anchor_3 || 'Merkle inclusion proof'}</p>
+                    <p class="text-sm">${(chain.triple_anchor && chain.triple_anchor.anchor_3) || 'Merkle inclusion proof'}</p>
                 </div>
             </div>`;
     }
@@ -606,7 +606,7 @@ function openTab(tabId) {
 }
 
 // Init
-document.getElementById("merkle-root").textContent = (reportData.report_info?.merkle_root || '').substring(0, 16) + "...";
+document.getElementById("merkle-root").textContent = ((reportData.report_info && reportData.report_info.merkle_root) || '').substring(0, 16) + "...";
 renderTabs();
 </script>
 </body>
