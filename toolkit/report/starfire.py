@@ -43,9 +43,11 @@ class StarFireReport:
                 "operation": "LATTICE TEAM — KHET-1",
                 "generated": self.timestamp,
                 "mode": mode,
+                "case_id": pcap_results.get("case_id", "AUTO"),
                 "merkle_root": ""
             },
             "executive_summary": self._build_exec_summary(pcap_results),
+            "visuals": self._build_visuals(pcap_results),
             "timeline": self._build_timeline(pcap_results),
             "top_castles": pcap_results.get("castles", []),
             "council_debate": pcap_results.get("debate", {}),
@@ -131,6 +133,16 @@ class StarFireReport:
         if custody:
             chain["custody_manifest"] = custody
         return chain
+
+    def _build_visuals(self, results: Dict) -> Dict:
+        """Build Plotly-ready data structures for charts."""
+        return {
+            "timeline": results.get("timeline_data", []),
+            "protocol_pie": results.get("protocols", {}),
+            "top_destinations": results.get("top_destinations", []),
+            "beacon_heatmap": results.get("beacon_matrix", []),
+            "port_distribution": results.get("port_distribution", {})
+        }
 
     def _generate_narrative(self, results: Dict) -> str:
         """Optional local Ollama narrative. Fully offline — model runs on local hardware."""
