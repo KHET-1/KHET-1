@@ -176,26 +176,52 @@
         </div>
     </section>
 
+    <!-- User Workspaces -->
+    <section class="mb-12">
+        <h2 class="text-xs text-muted uppercase tracking-widest mb-6 font-semibold">Analyst Workspaces</h2>
+        <div class="bg-subtle border border-theme rounded-2xl p-6">
+            <p class="text-secondary text-sm mb-4">Independent analysis silos. Each analyst works in their own space. Findings post to a shared board when ready for review.</p>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div class="border border-theme rounded-xl p-4 bg-surface">
+                    <div class="text-lg mb-1">👤</div>
+                    <div class="font-semibold text-sm">Individual Silo</div>
+                    <div class="text-muted text-xs mt-1">Upload pcaps, run analysis, generate reports independently. Isolated workspace per user ID.</div>
+                </div>
+                <div class="border border-theme rounded-xl p-4 bg-surface">
+                    <div class="text-lg mb-1">📋</div>
+                    <div class="font-semibold text-sm">Shared Board</div>
+                    <div class="text-muted text-xs mt-1">Post findings for team review. Adversarial review between analysts. Common evidence pool.</div>
+                </div>
+                <div class="border border-theme rounded-xl p-4 bg-surface">
+                    <div class="text-lg mb-1">🔒</div>
+                    <div class="font-semibold text-sm">Access Control</div>
+                    <div class="text-muted text-xs mt-1">User authentication ties workspace to identity. Audit trail on every action.</div>
+                </div>
+            </div>
+            <div class="mt-4 text-xs text-muted font-mono">Status: scaffold ready. User provisioning available on next deployment cycle.</div>
+        </div>
+    </section>
+
     <!-- Operations -->
     <section class="mb-12">
         <h2 class="text-xs text-muted uppercase tracking-widest mb-6 font-semibold">Operations</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
-            <a href="/upload.html" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
+            <a href="/ops/upload.html" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
                 <div class="text-xl mb-1">📤</div>
                 <div class="font-semibold">Submit Evidence</div>
                 <div class="text-muted text-xs mt-0.5">Upload PCAPs</div>
             </a>
-            <a href="/agents/" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
+            <a href="/ops/agents/" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
                 <div class="text-xl mb-1">📡</div>
                 <div class="font-semibold">Capture Agents</div>
                 <div class="text-muted text-xs mt-0.5">Phone & Desktop</div>
             </a>
-            <a href="/agents/results.html" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
+            <a href="/ops/agents/results.html" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
                 <div class="text-xl mb-1">📥</div>
                 <div class="font-semibold">Incoming</div>
                 <div class="text-muted text-xs mt-0.5">Live results</div>
             </a>
-            <a href="/agents/correlation.html" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
+            <a href="/ops/agents/correlation.html" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
                 <div class="text-xl mb-1">🔗</div>
                 <div class="font-semibold">Correlation</div>
                 <div class="text-muted text-xs mt-0.5">Multi-device</div>
