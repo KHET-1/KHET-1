@@ -1,207 +1,281 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>FireStar — StarFire Forensics</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-    .upload-zone { transition: all 0.3s; }
-    .upload-zone.dragover { background-color: #450a0a; color: white; border-color: #f87171; }
-    .tab-btn { transition: all 0.2s; }
-    .tab-btn.active { border-bottom: 3px solid #dc2626; color: #dc2626; font-weight: 600; }
-    .panel { display: none; }
-    .panel.active { display: block; }
-</style>
+    <meta charset="UTF-8">
+    <title>FireStar Lattice IDE — StarFire Forensics</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .upload-zone { transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); }
+        .upload-zone.dragover { 
+            background-color: #450a0a; 
+            border-color: #f87171; 
+            transform: scale(1.02); 
+        }
+        .starfire-glow { text-shadow: 0 0 20px rgb(248 113 113); }
+        .tab-btn { transition: all 0.2s; }
+        .tab-btn.active { border-bottom: 3px solid #dc2626; color: #dc2626; font-weight: 600; }
+        .panel { display: none; }
+        .panel.active { display: block; }
+        .fold7 { border: 1px solid #27272a; border-radius: 12px; margin-bottom: 0.75rem; overflow: hidden; }
+        .fold7-header { padding: 0.75rem 1rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; background: #18181b; }
+        .fold7-header:hover { background: #1f1f23; }
+        .fold7-header::after { content: '▼'; font-size: 0.6rem; color: #52525b; transition: transform 0.2s; }
+        .fold7.collapsed .fold7-header::after { transform: rotate(-90deg); }
+        .fold7-body { padding: 1rem; }
+        .fold7.collapsed .fold7-body { display: none; }
+    </style>
 </head>
 <body class="bg-zinc-950 text-white min-h-screen">
-<div class="max-w-7xl mx-auto p-6 md:p-8">
 
-    <!-- Header -->
-    <div class="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
+<div class="max-w-7xl mx-auto p-8">
+
+    <!-- Branded Header -->
+    <header class="flex justify-between items-center mb-12">
         <div class="flex items-center gap-4">
-            <span class="text-5xl">🔥</span>
+            <span class="text-6xl">🔥</span>
             <div>
-                <h1 class="text-4xl font-bold tracking-tight">STARFIRE</h1>
-                <p class="text-red-400 text-sm">Light Forged in Evidence</p>
+                <h1 class="text-5xl font-bold tracking-tighter starfire-glow">STARFIRE</h1>
+                <p class="text-red-400 text-xl">Light Forged in Evidence</p>
             </div>
         </div>
-        <div class="flex flex-wrap gap-2 text-sm">
-            <a href="/upload.html" class="px-3 py-1.5 bg-red-900/50 border border-red-700 rounded-lg hover:bg-red-800/50">Upload</a>
-            <a href="/report-formal.html" class="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700">Formal Report</a>
-            <a href="/agents/" class="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700">Agents</a>
-            <a href="/agents/results.html" class="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700">Incoming</a>
-            <a href="/agents/correlation.html" class="px-3 py-1.5 bg-zinc-800 border border-zinc-700 rounded-lg hover:bg-zinc-700">Correlation</a>
-            <span class="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-lg font-mono text-zinc-500 text-xs">LATTICE TEAM — KHET-1</span>
-        </div>
-    </div>
-
-    <!-- Upload Zone -->
-    <div id="upload-zone" 
-         class="upload-zone border-4 border-dashed border-red-800 hover:border-red-500 rounded-3xl p-12 md:p-20 text-center cursor-pointer mb-10"
-         onclick="document.getElementById('file-input').click()">
-        <div class="text-6xl mb-4">📤</div>
-        <h2 class="text-3xl md:text-4xl font-bold mb-2">Drop PCAP / PCAPNG Files</h2>
-        <p class="text-lg text-zinc-400 mb-6">or click to browse — supports multiple files, max 50MB each</p>
-        <input type="file" id="file-input" multiple accept=".pcap,.pcapng,.cap" class="hidden">
-        <button class="bg-red-700 hover:bg-red-600 px-8 py-3 rounded-xl text-lg font-semibold">
-            Select Files
-        </button>
-    </div>
-
-    <div id="upload-status" class="hidden mb-10"></div>
-
-    <!-- Main Tabs -->
-    <div class="flex flex-wrap gap-1 border-b border-zinc-800 mb-8">
-        <button class="tab-btn px-4 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white active" onclick="openTab('overview')">Overview</button>
-        <button class="tab-btn px-4 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('topology')">Topology</button>
-        <button class="tab-btn px-4 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('debate')">Council Debate</button>
-        <button class="tab-btn px-4 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('tracked')">Tracked Drip</button>
-        <button class="tab-btn px-4 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('evidence')">Evidence</button>
-        <button class="tab-btn px-4 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('report')">Full Report</button>
-    </div>
-
-    <!-- Overview Panel -->
-    <div id="panel-overview" class="panel active">
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                <div class="text-3xl font-bold font-mono text-red-400">9,528</div>
-                <div class="text-xs text-zinc-500 uppercase tracking-wider mt-1">Packets</div>
-            </div>
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                <div class="text-3xl font-bold font-mono text-red-400">25.7MB</div>
-                <div class="text-xs text-zinc-500 uppercase tracking-wider mt-1">Evidence</div>
-            </div>
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                <div class="text-3xl font-bold font-mono text-green-400">100%</div>
-                <div class="text-xs text-zinc-500 uppercase tracking-wider mt-1">Alignment</div>
-            </div>
-            <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-                <div class="text-3xl font-bold font-mono text-green-400">BENIGN</div>
-                <div class="text-xs text-zinc-500 uppercase tracking-wider mt-1">Verdict</div>
+        <div class="text-right">
+            <div class="font-mono text-sm text-gray-400">LATTICE TEAM — KHET-1</div>
+            <div class="text-xs text-gray-500 mt-1">FireStar Forensics</div>
+            <div class="flex gap-2 mt-2 justify-end">
+                <a href="/upload.html" class="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded hover:bg-zinc-700">Upload</a>
+                <a href="/report-formal.html" class="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded hover:bg-zinc-700">Formal</a>
+                <a href="/agents/" class="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded hover:bg-zinc-700">Agents</a>
+                <a href="/agents/results.html" class="text-xs px-2 py-1 bg-zinc-800 border border-zinc-700 rounded hover:bg-zinc-700">Incoming</a>
             </div>
         </div>
+    </header>
 
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 mb-6">
-            <h3 class="text-lg font-semibold mb-3">Executive Summary</h3>
-            <p class="text-zinc-300 leading-relaxed">
-                The network drip from <code class="text-red-400">192.168.2.46</code> is a Python 3.13 polling script 
-                using urllib to check services on a Mac Mini (<code class="text-red-400">192.168.2.151</code>) every 7.2 seconds.
-                The GNOME component gvfsd-http (PID 181723) acts as proxy. All external traffic identified as legitimate.
-                Classification: <strong class="text-green-400">AUTOMATED POLLING / LOCAL SERVICE MESH</strong>.
+    <!-- Upload-Focused Hero -->
+    <div class="mb-16">
+        <div id="upload-zone" 
+             class="upload-zone border-4 border-dashed border-red-700 hover:border-red-500 rounded-3xl p-20 text-center cursor-pointer bg-zinc-900">
+            <div class="text-8xl mb-6">📤</div>
+            <h2 class="text-4xl font-bold mb-3">Drop PCAP / PCAPNG Files Here</h2>
+            <p class="text-xl text-gray-400 mb-8 max-w-md mx-auto">
+                Analyze network captures with StarFire — Merkle-sealed, adversarially tested, court-ready reports
             </p>
+            <input type="file" id="file-input" multiple accept=".pcap,.pcapng,.cap" class="hidden">
+            <button onclick="document.getElementById('file-input').click()" 
+                    class="bg-red-600 hover:bg-red-500 px-12 py-5 rounded-2xl text-xl font-semibold inline-flex items-center gap-3">
+                <span>Select Files</span>
+                <span class="text-2xl">→</span>
+            </button>
+            <p class="text-xs text-gray-500 mt-6">Supports multiple files • Max ~50MB each • Fully offline analysis</p>
         </div>
 
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-            <h3 class="text-lg font-semibold mb-3">Drip Source</h3>
-            <pre class="text-sm text-zinc-400 font-mono leading-relaxed overflow-x-auto">SOURCE:  192.168.2.46 (Parrot Linux — airgapped/retired)
+        <div id="upload-status" class="hidden mt-8 text-center"></div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="border-b border-zinc-800 mb-8">
+        <div class="flex flex-wrap gap-1">
+            <button class="tab-btn px-5 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white active" onclick="openTab('overview')">Overview</button>
+            <button class="tab-btn px-5 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('topology')">Topology</button>
+            <button class="tab-btn px-5 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('debate')">Council Debate</button>
+            <button class="tab-btn px-5 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('tracked')">Tracked Drip</button>
+            <button class="tab-btn px-5 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('evidence')">Evidence</button>
+            <button class="tab-btn px-5 py-3 text-sm border-b-3 border-transparent text-zinc-400 hover:text-white" onclick="openTab('report')">Full Report</button>
+        </div>
+    </div>
+
+    <!-- Content Area -->
+    <div class="bg-zinc-900 rounded-3xl p-8 md:p-10 min-h-[600px]">
+
+        <!-- Overview Panel -->
+        <div id="panel-overview" class="panel active">
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                <div class="bg-zinc-800 rounded-2xl p-5 text-center">
+                    <div class="text-3xl font-bold font-mono text-red-400">9,528</div>
+                    <div class="text-xs text-zinc-500 uppercase tracking-wider mt-1">Packets</div>
+                </div>
+                <div class="bg-zinc-800 rounded-2xl p-5 text-center">
+                    <div class="text-3xl font-bold font-mono text-red-400">25.7MB</div>
+                    <div class="text-xs text-zinc-500 uppercase tracking-wider mt-1">Evidence</div>
+                </div>
+                <div class="bg-zinc-800 rounded-2xl p-5 text-center">
+                    <div class="text-3xl font-bold font-mono text-green-400">100%</div>
+                    <div class="text-xs text-zinc-500 uppercase tracking-wider mt-1">Alignment</div>
+                </div>
+                <div class="bg-zinc-800 rounded-2xl p-5 text-center">
+                    <div class="text-3xl font-bold font-mono text-green-400">BENIGN</div>
+                    <div class="text-xs text-zinc-500 uppercase tracking-wider mt-1">Verdict</div>
+                </div>
+            </div>
+
+            <div class="fold7">
+                <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <span class="font-semibold">Executive Summary</span>
+                </div>
+                <div class="fold7-body">
+                    <p class="text-zinc-300 leading-relaxed">
+                        The network drip from <code class="text-red-400 bg-zinc-800 px-1 rounded">192.168.2.46</code> is a 
+                        <strong>Python 3.13 polling script</strong> using urllib to check services on a Mac Mini 
+                        (<code class="text-red-400 bg-zinc-800 px-1 rounded">192.168.2.151</code>) every 7.2 seconds.
+                        The GNOME component <code class="text-red-400 bg-zinc-800 px-1 rounded">gvfsd-http</code> (PID 181723) acts as proxy.
+                        All external traffic identified as legitimate.
+                    </p>
+                    <p class="mt-3 text-lg font-semibold text-green-400">Classification: AUTOMATED POLLING / LOCAL SERVICE MESH</p>
+                </div>
+            </div>
+
+            <div class="fold7">
+                <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <span class="font-semibold">Drip Source Trace</span>
+                </div>
+                <div class="fold7-body">
+                    <pre class="text-sm text-zinc-400 font-mono leading-relaxed overflow-x-auto bg-black/50 rounded-xl p-4">SOURCE:  192.168.2.46 (Parrot Linux — airgapped/retired)
 PROCESS: Python 3.13 → urllib → GIO → DBus → gvfsd-http (PID 181723)
 TARGET:  192.168.2.151 (Mac Mini "crd-mac-mini-bombshell")
 PORTS:   7734 (/status → "online"), 8082 (/api/notes), 8083 (cross-subnet)
 PATTERN: time.sleep(7) loop → 7.2s beacon (σ=1.28s)
 VERDICT: Own monitoring script. Benign.</pre>
-        </div>
-    </div>
+                </div>
+            </div>
 
-    <!-- Topology Panel -->
-    <div id="panel-topology" class="panel">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-            <h3 class="text-lg font-semibold mb-4">Network Topology</h3>
-            <svg viewBox="0 0 800 400" class="w-full" style="max-height:400px;">
-                <line x1="200" y1="180" x2="530" y2="130" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,3"><animate attributeName="stroke-dashoffset" from="0" to="-7" dur="1s" repeatCount="indefinite"/></line>
-                <line x1="200" y1="180" x2="530" y2="250" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"/>
-                <line x1="200" y1="180" x2="200" y2="340" stroke="#4ade80" stroke-width="1"/>
-                <line x1="200" y1="180" x2="530" y2="350" stroke="#a78bfa" stroke-width="1"/>
-                <g transform="translate(200,180)"><circle r="22" fill="#ef4444" opacity="0.9"/><text text-anchor="middle" dy="-30" fill="#fff" font-size="10" font-family="monospace">192.168.2.46</text><text text-anchor="middle" dy="-18" fill="#fca5a5" font-size="8">SOURCE</text><text text-anchor="middle" dy="4" fill="#fff" font-size="9" font-weight="bold">SRC</text></g>
-                <g transform="translate(530,130)"><circle r="18" fill="#3b82f6" opacity="0.9"/><text text-anchor="middle" dy="-25" fill="#fff" font-size="10" font-family="monospace">192.168.2.151</text><text text-anchor="middle" dy="-13" fill="#93c5fd" font-size="8">MAC MINI</text><text text-anchor="middle" dy="4" fill="#fff" font-size="8">:7734 :8082</text></g>
-                <g transform="translate(530,250)"><circle r="15" fill="#f59e0b" opacity="0.9"/><text text-anchor="middle" dy="-22" fill="#fff" font-size="10" font-family="monospace">192.168.1.46</text><text text-anchor="middle" dy="-10" fill="#fde68a" font-size="8">CROSS-SUBNET</text><text text-anchor="middle" dy="4" fill="#fff" font-size="8">:8083</text></g>
-                <g transform="translate(200,340)"><circle r="12" fill="#4ade80" opacity="0.8"/><text text-anchor="middle" dy="-18" fill="#fff" font-size="9" font-family="monospace">192.168.2.1</text><text text-anchor="middle" dy="-7" fill="#86efac" font-size="7">GATEWAY</text></g>
-                <g transform="translate(530,350)"><circle r="12" fill="#a78bfa" opacity="0.8"/><text text-anchor="middle" dy="-18" fill="#fff" font-size="9" font-family="monospace">143.198.246.99</text><text text-anchor="middle" dy="-7" fill="#c4b5fd" font-size="7">apackets.com</text></g>
-                <text x="350" y="145" fill="#ef4444" font-size="8" font-family="monospace">GET /status q7.2s</text>
-                <text x="350" y="225" fill="#f59e0b" font-size="8" font-family="monospace">:8083 (104 pkts)</text>
+            <div class="fold7 collapsed">
+                <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <span class="font-semibold">Protocol Distribution</span>
+                </div>
+                <div class="fold7-body">
+                    <div class="grid grid-cols-2 md:grid-cols-3 gap-3 text-sm">
+                        <div class="bg-zinc-800 rounded-xl p-3"><span class="text-zinc-400">TCP:</span> <span class="font-mono">57.4%</span></div>
+                        <div class="bg-zinc-800 rounded-xl p-3"><span class="text-zinc-400">TLS/QUIC:</span> <span class="font-mono">25.9%</span></div>
+                        <div class="bg-zinc-800 rounded-xl p-3"><span class="text-zinc-400">DNS:</span> <span class="font-mono">5.1%</span></div>
+                        <div class="bg-zinc-800 rounded-xl p-3"><span class="text-zinc-400">HTTP:</span> <span class="font-mono">0.6%</span></div>
+                        <div class="bg-zinc-800 rounded-xl p-3"><span class="text-zinc-400">Other:</span> <span class="font-mono">11.0%</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Topology Panel -->
+        <div id="panel-topology" class="panel">
+            <h3 class="text-xl font-semibold mb-6">Network Topology</h3>
+            <svg viewBox="0 0 800 420" class="w-full" style="max-height:420px;">
+                <line x1="200" y1="190" x2="550" y2="140" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,3"><animate attributeName="stroke-dashoffset" from="0" to="-7" dur="1s" repeatCount="indefinite"/></line>
+                <line x1="200" y1="190" x2="550" y2="270" stroke="#f59e0b" stroke-width="1.5" stroke-dasharray="4,3"><animate attributeName="stroke-dashoffset" from="0" to="-7" dur="2s" repeatCount="indefinite"/></line>
+                <line x1="200" y1="190" x2="200" y2="360" stroke="#4ade80" stroke-width="1"/>
+                <line x1="200" y1="190" x2="550" y2="370" stroke="#a78bfa" stroke-width="1"/>
+                <line x1="550" y1="140" x2="720" y2="80" stroke="#6366f1" stroke-width="1"/>
+
+                <g transform="translate(200,190)"><circle r="24" fill="#ef4444" opacity="0.9"/><circle r="30" fill="none" stroke="#ef4444" stroke-width="1" opacity="0.4" stroke-dasharray="3,2"><animate attributeName="r" values="30;36;30" dur="2s" repeatCount="indefinite"/></circle><text text-anchor="middle" dy="-36" fill="#fff" font-size="10" font-family="monospace">192.168.2.46</text><text text-anchor="middle" dy="-23" fill="#fca5a5" font-size="8">PARROT (SOURCE)</text><text text-anchor="middle" dy="5" fill="#fff" font-size="10" font-weight="bold">SRC</text></g>
+                <g transform="translate(550,140)"><circle r="20" fill="#3b82f6" opacity="0.9"/><text text-anchor="middle" dy="-28" fill="#fff" font-size="10" font-family="monospace">192.168.2.151</text><text text-anchor="middle" dy="-16" fill="#93c5fd" font-size="8">MAC MINI</text><text text-anchor="middle" dy="4" fill="#fff" font-size="8">:7734 :8082</text></g>
+                <g transform="translate(550,270)"><circle r="16" fill="#f59e0b" opacity="0.9"/><text text-anchor="middle" dy="-24" fill="#fff" font-size="10" font-family="monospace">192.168.1.46</text><text text-anchor="middle" dy="-12" fill="#fde68a" font-size="8">CROSS-SUBNET</text><text text-anchor="middle" dy="4" fill="#fff" font-size="8">:8083</text></g>
+                <g transform="translate(200,360)"><circle r="13" fill="#4ade80" opacity="0.8"/><text text-anchor="middle" dy="-20" fill="#fff" font-size="9" font-family="monospace">192.168.2.1</text><text text-anchor="middle" dy="-9" fill="#86efac" font-size="7">GATEWAY/DNS</text></g>
+                <g transform="translate(550,370)"><circle r="13" fill="#a78bfa" opacity="0.8"/><text text-anchor="middle" dy="-20" fill="#fff" font-size="9" font-family="monospace">143.198.246.99</text><text text-anchor="middle" dy="-9" fill="#c4b5fd" font-size="7">apackets.com</text></g>
+                <g transform="translate(720,80)"><circle r="11" fill="#6366f1" opacity="0.7"/><text text-anchor="middle" dy="-16" fill="#fff" font-size="8" font-family="monospace">api2.cursor.sh</text><text text-anchor="middle" dy="-6" fill="#a5b4fc" font-size="7">CURSOR IDE</text></g>
+
+                <text x="360" y="155" fill="#ef4444" font-size="8" font-family="monospace">GET /status q7.2s</text>
+                <text x="360" y="170" fill="#ef4444" font-size="8" font-family="monospace">GET /api/notes q18s</text>
+                <text x="360" y="245" fill="#f59e0b" font-size="8" font-family="monospace">:8083 (104 pkts)</text>
+                <text x="130" y="285" fill="#4ade80" font-size="7" font-family="monospace">DNS :53</text>
+                <text x="380" y="310" fill="#a78bfa" font-size="7" font-family="monospace">HTTPS :443</text>
+
+                <!-- Legend -->
+                <rect x="20" y="390" width="8" height="8" fill="#ef4444" rx="1"/><text x="32" y="398" font-size="8" fill="#71717a">Source</text>
+                <rect x="80" y="390" width="8" height="8" fill="#3b82f6" rx="1"/><text x="92" y="398" font-size="8" fill="#71717a">LAN Target</text>
+                <rect x="160" y="390" width="8" height="8" fill="#f59e0b" rx="1"/><text x="172" y="398" font-size="8" fill="#71717a">Cross-Subnet</text>
+                <rect x="260" y="390" width="8" height="8" fill="#a78bfa" rx="1"/><text x="272" y="398" font-size="8" fill="#71717a">External</text>
+                <line x1="340" y1="394" x2="375" y2="394" stroke="#ef4444" stroke-width="2" stroke-dasharray="4,3"/><text x="380" y="398" font-size="8" fill="#71717a">Active drip</text>
             </svg>
         </div>
-    </div>
 
-    <!-- Debate Panel -->
-    <div id="panel-debate" class="panel">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-            <h3 class="text-lg font-semibold mb-4">Council Debate — Alignment: 100%</h3>
-            <div class="border-l-4 border-red-500 bg-red-950/30 p-4 rounded-r-xl mb-3">
-                <p class="text-xs font-bold text-red-400 uppercase tracking-wider mb-1">Red Council (Attribution) — 50%</p>
-                <p class="text-sm text-zinc-300">8 non-standard ports indicate port-hopping evasion or tunneling</p>
-            </div>
-            <div class="border-l-4 border-blue-500 bg-blue-950/30 p-4 rounded-r-xl mb-3">
-                <p class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">Blue Council (Innocence) — 95%</p>
-                <p class="text-sm text-zinc-300">Infrastructure traffic is normal. High-numbered ports are TCP ephemeral source ports.</p>
-            </div>
-            <div class="border-l-4 border-green-500 bg-green-950/30 p-4 rounded-r-xl">
-                <p class="text-xs font-bold text-green-400 uppercase tracking-wider mb-1">Final Maker: BLUE PREVAILS</p>
-                <p class="text-sm text-zinc-300">Blue confidence 0.95 exceeds Red 0.50. HTTP responses confirm legitimate services. Ephemeral ports are kernel-assigned.</p>
+        <!-- Debate Panel -->
+        <div id="panel-debate" class="panel">
+            <h3 class="text-xl font-semibold mb-2">Council Debate</h3>
+            <p class="text-sm text-zinc-500 mb-6">Alignment: <span class="text-green-400 font-semibold">100%</span> — All contested findings resolved.</p>
+
+            <div class="fold7">
+                <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <span class="font-semibold text-sm">Debate #1: Port Usage Pattern</span>
+                    <span class="text-xs px-2 py-0.5 bg-green-900/50 border border-green-700 rounded text-green-400">BLUE PREVAILS</span>
+                </div>
+                <div class="fold7-body space-y-3">
+                    <div class="border-l-4 border-red-500 bg-red-950/20 p-4 rounded-r-xl">
+                        <p class="text-xs font-bold text-red-400 uppercase tracking-wider mb-1">Red Council (Attribution) — 50%</p>
+                        <p class="text-sm text-zinc-300">8 non-standard ports: port-hopping evasion or tunneling. Multiple non-standard ports at this volume suggests deliberate evasion.</p>
+                    </div>
+                    <div class="border-l-4 border-blue-500 bg-blue-950/20 p-4 rounded-r-xl">
+                        <p class="text-xs font-bold text-blue-400 uppercase tracking-wider mb-1">Blue Council (Innocence) — 95%</p>
+                        <p class="text-sm text-zinc-300">Infrastructure traffic normal. High-numbered ports are TCP ephemeral source ports (kernel-assigned). Fixed ports serve valid HTTP with identifiable responses.</p>
+                    </div>
+                    <div class="border-l-4 border-green-500 bg-green-950/20 p-4 rounded-r-xl">
+                        <p class="text-xs font-bold text-green-400 uppercase tracking-wider mb-1">Final Maker: BLUE PREVAILS</p>
+                        <p class="text-sm text-zinc-300">Blue confidence 0.95 exceeds Red 0.50. HTTP responses ("online", "crd-mac-mini-bombshell") confirm legitimate services. Ephemeral ports are standard TCP behavior.</p>
+                    </div>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Tracked Drip Panel -->
-    <div id="panel-tracked" class="panel">
-        <div class="space-y-3">
-            <div class="flex items-start gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <div class="w-2 h-2 mt-2 rounded-full bg-green-400 flex-shrink-0"></div>
-                <div class="flex-1">
-                    <p class="font-semibold text-sm">GET /status → 192.168.2.151:7734</p>
-                    <p class="text-xs text-zinc-400">Interval: 7.2s | Response: "online" | RESOLVED: Health-check polling</p>
+        <!-- Tracked Drip Panel -->
+        <div id="panel-tracked" class="panel">
+            <h3 class="text-xl font-semibold mb-6">Tracked Drip Items</h3>
+            <div class="space-y-3">
+                <div class="flex items-start gap-3 bg-zinc-800 rounded-xl p-4">
+                    <div class="w-2.5 h-2.5 mt-1.5 rounded-full bg-green-400 flex-shrink-0"></div>
+                    <div class="flex-1"><p class="font-semibold text-sm">GET /status → 192.168.2.151:7734</p><p class="text-xs text-zinc-400 mt-0.5">Interval: 7.2s (σ=1.28s) | Response: "online" | Health-check polling loop</p></div>
+                    <span class="text-xs px-2 py-0.5 bg-green-900/50 border border-green-700 rounded text-green-400 flex-shrink-0">BENIGN</span>
                 </div>
-                <span class="text-xs px-2 py-0.5 bg-green-900/50 border border-green-700 rounded text-green-400">BENIGN</span>
-            </div>
-            <div class="flex items-start gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <div class="w-2 h-2 mt-2 rounded-full bg-green-400 flex-shrink-0"></div>
-                <div class="flex-1">
-                    <p class="font-semibold text-sm">GET /api/notes → 192.168.2.151:8082</p>
-                    <p class="text-xs text-zinc-400">Interval: 18.1s | Response: "crd-mac-mini-bombshell-2026-03-22" | RESOLVED</p>
+                <div class="flex items-start gap-3 bg-zinc-800 rounded-xl p-4">
+                    <div class="w-2.5 h-2.5 mt-1.5 rounded-full bg-green-400 flex-shrink-0"></div>
+                    <div class="flex-1"><p class="font-semibold text-sm">GET /api/notes → 192.168.2.151:8082</p><p class="text-xs text-zinc-400 mt-0.5">Interval: 18.1s | Response: "crd-mac-mini-bombshell-2026-03-22"</p></div>
+                    <span class="text-xs px-2 py-0.5 bg-green-900/50 border border-green-700 rounded text-green-400 flex-shrink-0">BENIGN</span>
                 </div>
-                <span class="text-xs px-2 py-0.5 bg-green-900/50 border border-green-700 rounded text-green-400">BENIGN</span>
-            </div>
-            <div class="flex items-start gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <div class="w-2 h-2 mt-2 rounded-full bg-yellow-400 flex-shrink-0 animate-pulse"></div>
-                <div class="flex-1">
-                    <p class="font-semibold text-sm">TCP → 192.168.1.46:8083 (cross-subnet)</p>
-                    <p class="text-xs text-zinc-400">104 packets | Needs confirmation</p>
+                <div class="flex items-start gap-3 bg-zinc-800 rounded-xl p-4">
+                    <div class="w-2.5 h-2.5 mt-1.5 rounded-full bg-yellow-400 flex-shrink-0 animate-pulse"></div>
+                    <div class="flex-1"><p class="font-semibold text-sm">TCP → 192.168.1.46:8083 (cross-subnet)</p><p class="text-xs text-zinc-400 mt-0.5">104 packets | Rotating ephemeral source ports | Needs confirmation</p></div>
+                    <span class="text-xs px-2 py-0.5 bg-yellow-900/50 border border-yellow-700 rounded text-yellow-400 flex-shrink-0">MONITOR</span>
                 </div>
-                <span class="text-xs px-2 py-0.5 bg-yellow-900/50 border border-yellow-700 rounded text-yellow-400">MONITOR</span>
-            </div>
-            <div class="flex items-start gap-3 bg-zinc-900 border border-zinc-800 rounded-xl p-4">
-                <div class="w-2 h-2 mt-2 rounded-full bg-red-400 flex-shrink-0 animate-pulse"></div>
-                <div class="flex-1">
-                    <p class="font-semibold text-sm">gvfsd-http CLOSE-WAIT FD leak</p>
-                    <p class="text-xs text-zinc-400">PID 181723 | 3 leaked sockets | Fix: kill 181723</p>
+                <div class="flex items-start gap-3 bg-zinc-800 rounded-xl p-4">
+                    <div class="w-2.5 h-2.5 mt-1.5 rounded-full bg-green-400 flex-shrink-0"></div>
+                    <div class="flex-1"><p class="font-semibold text-sm">HTTPS → api2.cursor.sh, duckduckgo.com, apackets.com</p><p class="text-xs text-zinc-400 mt-0.5">Standard browser + IDE traffic | TLS SNI verified</p></div>
+                    <span class="text-xs px-2 py-0.5 bg-green-900/50 border border-green-700 rounded text-green-400 flex-shrink-0">BENIGN</span>
                 </div>
-                <span class="text-xs px-2 py-0.5 bg-red-900/50 border border-red-700 rounded text-red-400">FD LEAK</span>
+                <div class="flex items-start gap-3 bg-zinc-800 rounded-xl p-4">
+                    <div class="w-2.5 h-2.5 mt-1.5 rounded-full bg-red-400 flex-shrink-0 animate-pulse"></div>
+                    <div class="flex-1"><p class="font-semibold text-sm">gvfsd-http CLOSE-WAIT FD leak</p><p class="text-xs text-zinc-400 mt-0.5">PID 181723 | 3 leaked sockets on :8082 and :7734 | Known gvfs bug</p></div>
+                    <span class="text-xs px-2 py-0.5 bg-red-900/50 border border-red-700 rounded text-red-400 flex-shrink-0">FD LEAK</span>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Evidence Panel -->
-    <div id="panel-evidence" class="panel">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6">
-            <h3 class="text-lg font-semibold mb-4">Vault Seal — Triple Anchored</h3>
-            <div class="bg-black rounded-xl p-4 font-mono text-xs text-green-400 mb-4 overflow-x-auto">
-                MERKLE ROOT: 7a2631ab7394377a7997f6ddad26c32812101c2f1f6f37916a65f744800cbcaf<br>
-                VAULT SEAL:  172c29fa04fe5559048edf9f021f2f2ce8441a677ff193e7e026b3f09d2baa37<br>
-                LEAVES:      2,083<br>
-                NETWORK:     0 calls | AI API: 0 calls<br>
-                STATUS:      ALL VERIFIED
+        <!-- Evidence Panel -->
+        <div id="panel-evidence" class="panel">
+            <h3 class="text-xl font-semibold mb-6">Vault Seal — Triple Anchored</h3>
+            <div class="bg-black rounded-2xl p-5 font-mono text-xs text-green-400 mb-6 overflow-x-auto leading-relaxed">
+MERKLE ROOT: 7a2631ab7394377a7997f6ddad26c32812101c2f1f6f37916a65f744800cbcaf
+VAULT SEAL:  172c29fa04fe5559048edf9f021f2f2ce8441a677ff193e7e026b3f09d2baa37
+LEAVES:      2,083
+NETWORK:     0 calls | AI API: 0 calls
+STATUS:      ALL VERIFIED ✓
             </div>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm">
-                <div class="bg-zinc-800 rounded-xl p-3"><strong class="text-zinc-400 text-xs">Anchor 1:</strong><br>SHA-256 per file</div>
-                <div class="bg-zinc-800 rounded-xl p-3"><strong class="text-zinc-400 text-xs">Anchor 2:</strong><br>Git commit history</div>
-                <div class="bg-zinc-800 rounded-xl p-3"><strong class="text-zinc-400 text-xs">Anchor 3:</strong><br>Merkle inclusion proof</div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3 text-sm mb-6">
+                <div class="bg-zinc-800 rounded-xl p-4"><strong class="text-zinc-500 text-xs uppercase">Anchor 1</strong><p class="mt-1">SHA-256 per file (independently verifiable)</p></div>
+                <div class="bg-zinc-800 rounded-xl p-4"><strong class="text-zinc-500 text-xs uppercase">Anchor 2</strong><p class="mt-1">Git commit history (timestamped, immutable)</p></div>
+                <div class="bg-zinc-800 rounded-xl p-4"><strong class="text-zinc-500 text-xs uppercase">Anchor 3</strong><p class="mt-1">Merkle tree inclusion proof (mathematical)</p></div>
+            </div>
+            <div class="fold7 collapsed">
+                <div class="fold7-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <span class="font-semibold text-sm">Evidence File Hashes</span>
+                </div>
+                <div class="fold7-body font-mono text-xs text-zinc-400 space-y-1">
+                    <p>ppppppppppppppp.pcapng → 0e0764b87a49d5c2b66aa245c8f8ca90...</p>
+                    <p>2.pcapng → b6ea0520509be6081f1ef2c747ad3021...</p>
+                    <p>1.pcapng → 035d86fcc6fcff58e59845df7af94ae0...</p>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- Full Report Panel -->
-    <div id="panel-report" class="panel">
-        <iframe src="/starfire_report_final.html" class="w-full rounded-2xl border border-zinc-800" style="height:80vh;"></iframe>
+        <!-- Full Report Panel -->
+        <div id="panel-report" class="panel">
+            <iframe src="/starfire_report_final.html" class="w-full rounded-2xl border border-zinc-800" style="height:80vh;"></iframe>
+        </div>
+
     </div>
 
     <!-- Footer -->
@@ -213,41 +287,61 @@ VERDICT: Own monitoring script. Benign.</pre>
 </div>
 
 <script>
-// Upload
+// Upload handling
 const uploadZone = document.getElementById('upload-zone');
 const fileInput = document.getElementById('file-input');
-const uploadStatus = document.getElementById('upload-status');
+const statusDiv = document.getElementById('upload-status');
 
 uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('dragover'); });
 uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('dragover'));
-uploadZone.addEventListener('drop', e => { e.preventDefault(); uploadZone.classList.remove('dragover'); handleFiles(e.dataTransfer.files); });
+uploadZone.addEventListener('drop', e => { 
+    e.preventDefault(); 
+    uploadZone.classList.remove('dragover'); 
+    handleFiles(e.dataTransfer.files); 
+});
 fileInput.addEventListener('change', e => handleFiles(e.target.files));
 
 async function handleFiles(files) {
-    uploadStatus.classList.remove('hidden');
-    uploadStatus.innerHTML = `<div class="bg-zinc-900 border border-zinc-800 rounded-xl p-4 text-center"><p class="text-zinc-300">Uploading ${files.length} file(s)...</p></div>`;
+    if (!files.length) return;
+    
+    statusDiv.classList.remove('hidden');
+    statusDiv.innerHTML = `<p class="text-xl text-zinc-300">Analyzing ${files.length} capture(s) with StarFire...</p>`;
 
     const results = [];
     for (const f of files) {
         try {
             const res = await fetch('/api/ingest', {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/octet-stream', 'X-Device-ID': 'web-upload-' + Date.now(), 'X-Capture-Time': new Date().toISOString() },
+                headers: { 
+                    'Content-Type': 'application/octet-stream', 
+                    'X-Device-ID': 'web-upload-' + Date.now(),
+                    'X-Capture-Time': new Date().toISOString()
+                },
                 body: f
             });
             results.push(await res.json());
-        } catch (err) { results.push({error: err.message}); }
+        } catch (err) {
+            results.push({ error: err.message });
+        }
     }
 
     const success = results.filter(r => r.status === 'accepted').length;
-    uploadStatus.innerHTML = `
-        <div class="bg-green-950/50 border border-green-700 rounded-xl p-4 text-center">
-            <p class="text-green-400 font-semibold">${success}/${files.length} file(s) submitted</p>
-            <a href="/agents/results.html" class="inline-block mt-2 text-sm text-red-400 hover:text-red-300">View Results →</a>
-        </div>`;
+    if (success > 0) {
+        statusDiv.innerHTML = `
+            <div class="bg-green-900/50 border border-green-600 p-8 rounded-3xl max-w-lg mx-auto">
+                <p class="text-2xl font-bold mb-4 text-green-400">✅ StarFire Analysis Complete</p>
+                <p class="text-sm text-zinc-400 mb-4">${success}/${files.length} file(s) sealed and submitted</p>
+                <a href="/agents/results.html"
+                   class="block bg-white text-black py-4 rounded-2xl font-semibold text-center hover:bg-red-100 transition">
+                    View Full Results →
+                </a>
+            </div>`;
+    } else {
+        statusDiv.innerHTML = `<p class="text-red-400">Upload failed. For large files use CLI: ./starfire analyze your_file.pcap</p>`;
+    }
 }
 
-// Tabs
+// Tab system
 function openTab(id) {
     document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
