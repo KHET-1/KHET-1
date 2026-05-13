@@ -1,0 +1,33 @@
+[starfire]
+version = "1.0.0"
+mode = "offline"  # offline | local-llm | cloud
+
+[evidence]
+hash_algorithm = "sha256"
+enforce_readonly = true
+first_touch_seal = true
+
+[councils]
+red_enabled = true
+blue_enabled = true
+final_maker = true
+alignment_threshold = 0.7  # below this = CONTESTED
+
+[redaction]
+enabled = false
+auto_internal = false
+map_file = ""
+
+[report]
+format = "html"  # html | json | both
+include_narrative = false
+
+[llm]
+provider = "ollama"  # ollama | none
+model = "llama3.1:8b"
+host = "http://127.0.0.1:11434"
+timeout_seconds = 120
+
+[network]
+allow_outbound = false  # hard block on any network calls
+upload_endpoint = "https://firestar-defense.vercel.app/api/ingest"
