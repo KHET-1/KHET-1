@@ -18,12 +18,13 @@ from merkle.tree import MerkleTree
 
 
 class StarFireReport:
-    def __init__(self, output_dir: str = "reports"):
+    def __init__(self, output_dir: str = "reports", llm_model: str = "llama3.1:8b"):
         self.output_dir = Path(output_dir)
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.timestamp = datetime.now(timezone.utc).isoformat()
         self.merkle = MerkleTree()
         self.data: Dict[str, Any] = {}
+        self._llm_model = llm_model
 
     def add_section(self, name: str, content: Dict):
         """Add any section with automatic Merkle leaf."""
@@ -130,6 +131,33 @@ class StarFireReport:
         if custody:
             chain["custody_manifest"] = custody
         return chain
+
+    def _generate_narrative(self, results: Dict) -> str:
+        """Optional local Ollama narrative. Fully offline — model runs on local hardware."""
+        try:
+            import subprocess
+            prompt = (
+                "You are a network forensics analyst writing for a non-technical audience. "
+                "Summarize the following findings in clear, court-friendly language. "
+                "State only what the evidence shows. Do not speculate.\n\n"
+                f"{json.dumps(results, indent=2, default=str)[:6000]}"
+            )
+
+            result = subprocess.run(
+                ["ollama", "run", self._llm_model, prompt],
+                capture_output=True, text=True, timeout=120,
+                env={**os.environ, 'OLLAMA_HOST': 'http://127.0.0.1:11434'}
+            )
+
+            if result.returncode == 0:
+                return result.stdout.strip()
+            return f"[Ollama returned non-zero: {result.stderr[:200]}]"
+        except FileNotFoundError:
+            return "[Ollama not installed. Install: curl -fsSL https://ollama.com/install.sh | sh]"
+        except subprocess.TimeoutExpired:
+            return "[Local LLM timed out (120s). Try smaller model: ollama pull llama3.2:3b]"
+        except Exception as e:
+            return f"[Local LLM error: {str(e)}]"
 
     def _build_methodology(self) -> Dict:
         return {

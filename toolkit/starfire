@@ -1,545 +1,224 @@
 #!/usr/bin/env python3
 """
-StarFire Forensics Toolkit — Standalone / Airgap
-No cloud. No API. No telemetry. Runs fully offline.
-
-Usage:
-    ./starfire analyze <pcap_files...> [options]
-    ./starfire analyze /path/to/*.pcapng --offline --redact --report html
-    ./starfire analyze capture.pcap --local-llm --report pdf
+StarFire CLI — LATTICE TEAM KHET-1
+Default: Fully offline, zero-AI, court-safe
 """
 
+import argparse
 import sys
 import os
-import json
-import hashlib
-import argparse
-import subprocess
 from pathlib import Path
-from datetime import datetime, timezone
-from collections import defaultdict, Counter
 
-# Ensure no network calls
-os.environ['NO_PROXY'] = '*'
-os.environ['no_proxy'] = '*'
+sys.path.insert(0, str(Path(__file__).parent))
 
+from report.starfire import StarFireReport
+from parser.pcap_parser import PcapParser
+from evidence.sealer import EvidenceSealer
+from councils.red import RedCouncil
+from councils.blue import BlueCouncil
+from councils.final_maker import FinalMaker
 
-# ============================================================
-# CHAIN OF CUSTODY
-# ============================================================
-
-class ChainOfCustody:
-    """Tracks every input/output with SHA-256. No network. No cloud."""
-
-    def __init__(self):
-        self.entries = []
-        self.start_time = datetime.now(timezone.utc).isoformat()
-
-    def seal_file(self, path, role='evidence'):
-        p = Path(path)
-        if not p.exists():
-            return None
-        data = p.read_bytes()
-        h = hashlib.sha256(data).hexdigest()
-        entry = {
-            'file': str(p.absolute()),
-            'filename': p.name,
-            'role': role,
-            'size_bytes': len(data),
-            'sha256': h,
-            'sealed_at': datetime.now(timezone.utc).isoformat()
-        }
-        self.entries.append(entry)
-        return entry
-
-    def seal_output(self, path, role='report'):
-        return self.seal_file(path, role)
-
-    def generate_vault_seal(self):
-        content = json.dumps(self.entries, sort_keys=True)
-        vault_hash = hashlib.sha256(content.encode()).hexdigest()
-        return {
-            'operation': 'StarFire Forensics — Standalone Analysis',
-            'mode': 'OFFLINE — No network, no cloud, no AI API calls',
-            'start_time': self.start_time,
-            'seal_time': datetime.now(timezone.utc).isoformat(),
-            'vault_seal_sha256': vault_hash,
-            'entries': self.entries,
-            'network_calls_made': 0,
-            'ai_api_calls_made': 0
-        }
-
-
-# ============================================================
-# REDACTION ENGINE
-# ============================================================
-
-class Redactor:
-    """Replaces sensitive values in output. Configurable map or auto."""
-
-    def __init__(self, redact_map=None, redact_internal=False):
-        self.map = redact_map or {}
-        self.auto_internal = redact_internal
-        self.auto_counter = 0
-
-    def load_map(self, path):
-        self.map = json.loads(Path(path).read_text())
-
-    def redact(self, text):
-        result = str(text)
-        for original, replacement in self.map.items():
-            result = result.replace(original, replacement)
-        if self.auto_internal:
-            import re
-            # Auto-redact RFC1918 addresses
-            def replace_ip(match):
-                ip = match.group(0)
-                if ip not in self.map:
-                    self.auto_counter += 1
-                    self.map[ip] = f"INTERNAL-{self.auto_counter:03d}"
-                return self.map[ip]
-            result = re.sub(r'192\.168\.\d+\.\d+', replace_ip, result)
-            result = re.sub(r'10\.\d+\.\d+\.\d+', replace_ip, result)
-            result = re.sub(r'172\.(1[6-9]|2\d|3[01])\.\d+\.\d+', replace_ip, result)
-        return result
-
-    def redact_dict(self, d):
-        """Recursively redact all string values in a dict."""
-        if isinstance(d, str):
-            return self.redact(d)
-        elif isinstance(d, dict):
-            return {k: self.redact_dict(v) for k, v in d.items()}
-        elif isinstance(d, list):
-            return [self.redact_dict(i) for i in d]
-        return d
-
-
-# ============================================================
-# PCAP ANALYSIS (No network, no AI)
-# ============================================================
-
-SERVICES = {
-    20: 'FTP-Data', 21: 'FTP', 22: 'SSH', 23: 'Telnet', 25: 'SMTP',
-    53: 'DNS', 67: 'DHCP', 68: 'DHCP', 80: 'HTTP', 110: 'POP3',
-    123: 'NTP', 143: 'IMAP', 443: 'HTTPS', 445: 'SMB', 993: 'IMAPS',
-    3306: 'MySQL', 3389: 'RDP', 5432: 'PostgreSQL', 6379: 'Redis',
-    8080: 'HTTP-Alt', 8443: 'HTTPS-Alt', 27017: 'MongoDB'
-}
-
-
-def analyze_pcap(pcap_path):
-    """Full algorithmic analysis. Zero AI. Zero network."""
-    import pyshark
-
-    results = {
-        'file': str(pcap_path),
-        'filename': Path(pcap_path).name,
-        'packets': 0,
-        'duration_seconds': 0,
-        'protocols': {},
-        'top_sources': [],
-        'top_destinations': [],
-        'top_conversations': [],
-        'port_analysis': [],
-        'dns_queries': [],
-        'tls_sni': [],
-        'beacon_candidates': [],
-        'anomalies': [],
-        'http_requests': []
-    }
-
-    cap = pyshark.FileCapture(str(pcap_path), keep_packets=True)
-    cap.load_packets()
-    results['packets'] = len(cap)
-
-    if len(cap) < 2:
-        cap.close()
-        return results
-
-    results['first_packet'] = str(cap[0].sniff_time)
-    results['last_packet'] = str(cap[-1].sniff_time)
-    results['duration_seconds'] = (cap[-1].sniff_time - cap[0].sniff_time).total_seconds()
-
-    # Counters
-    protocols = Counter()
-    src_ips = Counter()
-    dst_ips = Counter()
-    conversations = Counter()
-    ports = Counter()
-    dns_queries = Counter()
-    tls_sni = Counter()
-    http_reqs = []
-
-    # Per-destination timing (for beacon detection)
-    dst_times = defaultdict(list)
-
-    for pkt in cap:
-        protocols[pkt.highest_layer] += 1
-        length = int(pkt.length)
-
-        try:
-            src = pkt.ip.src
-            dst = pkt.ip.dst
-            src_ips[src] += 1
-            dst_ips[dst] += 1
-            conversations[f"{src} -> {dst}"] += 1
-            dst_times[dst].append(pkt.sniff_time)
-        except AttributeError:
-            continue
-
-        # Ports
-        try:
-            transport = pkt.transport_layer
-            if transport:
-                dport = int(pkt[transport].dstport)
-                ports[dport] += 1
-        except (AttributeError, TypeError, ValueError):
-            pass
-
-        # DNS
-        try:
-            if hasattr(pkt, 'dns') and hasattr(pkt.dns, 'qry_name'):
-                dns_queries[pkt.dns.qry_name] += 1
-        except:
-            pass
-
-        # TLS SNI
-        try:
-            if hasattr(pkt, 'tls'):
-                sni = getattr(pkt.tls, 'handshake_extensions_server_name', None)
-                if sni:
-                    tls_sni[sni] += 1
-        except:
-            pass
-
-        # HTTP
-        try:
-            if hasattr(pkt, 'http') and hasattr(pkt.http, 'request_method'):
-                http_reqs.append({
-                    'method': pkt.http.request_method,
-                    'host': getattr(pkt.http, 'host', ''),
-                    'uri': getattr(pkt.http, 'request_uri', ''),
-                    'src': src,
-                    'dst': dst,
-                    'user_agent': getattr(pkt.http, 'user_agent', '')
-                })
-        except:
-            pass
-
-    cap.close()
-
-    # Beacon detection (regular intervals)
-    import statistics
-    for dst, times in dst_times.items():
-        if len(times) < 5:
-            continue
-        sorted_times = sorted(times)
-        intervals = [(sorted_times[i+1] - sorted_times[i]).total_seconds()
-                     for i in range(len(sorted_times)-1)]
-        intervals = [i for i in intervals if i > 0.5]  # filter sub-second
-        if len(intervals) >= 4:
-            mean = statistics.mean(intervals)
-            if mean > 0:
-                std = statistics.stdev(intervals) if len(intervals) > 1 else 0
-                if std < mean * 0.4 and mean < 300:
-                    results['beacon_candidates'].append({
-                        'destination': dst,
-                        'mean_interval_seconds': round(mean, 2),
-                        'std_deviation': round(std, 2),
-                        'sample_count': len(intervals),
-                        'regularity': round(1 - (std / mean), 3) if mean > 0 else 0
-                    })
-
-    # Build results
-    results['protocols'] = dict(protocols.most_common(15))
-    results['top_sources'] = [{'ip': ip, 'packets': c} for ip, c in src_ips.most_common(10)]
-    results['top_destinations'] = [{'ip': ip, 'packets': c} for ip, c in dst_ips.most_common(10)]
-    results['top_conversations'] = [{'flow': f, 'packets': c} for f, c in conversations.most_common(10)]
-    results['port_analysis'] = [{'port': p, 'service': SERVICES.get(p, ''), 'packets': c}
-                                for p, c in ports.most_common(20)]
-    results['dns_queries'] = [{'domain': d, 'count': c} for d, c in dns_queries.most_common(20)]
-    results['tls_sni'] = [{'server_name': s, 'count': c} for s, c in tls_sni.most_common(20)]
-    results['http_requests'] = http_reqs[:30]
-
-    return results
-
-
-# ============================================================
-# LOCAL LLM INTEGRATION (Ollama — fully offline)
-# ============================================================
-
-def generate_narrative_local(findings, model='llama3.1:8b'):
-    """Generate plain-language narrative using local Ollama model. No internet."""
-    try:
-        prompt = f"""You are a network forensics analyst. Based on the following technical findings, 
-write a clear, professional narrative explanation suitable for a non-technical reader. 
-Include: what happened, who/what is involved, whether it's malicious or benign, and recommendations.
-Do not invent facts beyond what the data shows.
-
-FINDINGS:
-{json.dumps(findings, indent=2, default=str)[:8000]}
-
-Write the narrative:"""
-
-        result = subprocess.run(
-            ['ollama', 'run', model, prompt],
-            capture_output=True, text=True, timeout=120,
-            env={**os.environ, 'OLLAMA_HOST': 'http://127.0.0.1:11434'}
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-        else:
-            return f"[Local LLM unavailable: {result.stderr[:200]}]"
-    except FileNotFoundError:
-        return "[Ollama not installed. Install: curl -fsSL https://ollama.com/install.sh | sh && ollama pull llama3.1:8b]"
-    except subprocess.TimeoutExpired:
-        return "[Local LLM timed out. Try a smaller model: ollama pull llama3.2:3b]"
-
-
-# ============================================================
-# REPORT GENERATION
-# ============================================================
-
-def generate_html_report(all_findings, custody, redactor=None, narrative=None):
-    """Generate self-contained HTML report. No external dependencies."""
-
-    if redactor:
-        all_findings = redactor.redact_dict(all_findings)
-        if narrative:
-            narrative = redactor.redact(narrative)
-
-    seal = custody.generate_vault_seal()
-
-    # Build evidence table
-    evidence_rows = ''
-    for e in seal['entries']:
-        if e['role'] == 'evidence':
-            name = redactor.redact(e['filename']) if redactor else e['filename']
-            evidence_rows += f"<tr><td>{name}</td><td>{e['size_bytes']:,}</td><td class='mono'>{e['sha256']}</td><td>VERIFIED</td></tr>"
-
-    # Build findings sections
-    findings_html = ''
-    for f in all_findings:
-        fname = redactor.redact(f['filename']) if redactor else f['filename']
-        findings_html += f"<h3>{fname} ({f['packets']} packets, {f['duration_seconds']:.1f}s)</h3>"
-
-        if f.get('beacon_candidates'):
-            findings_html += "<h4>Beacon Candidates (Regular Interval Traffic)</h4><table>"
-            findings_html += "<tr><th>Destination</th><th>Interval</th><th>Std Dev</th><th>Regularity</th></tr>"
-            for b in f['beacon_candidates']:
-                dst = redactor.redact(b['destination']) if redactor else b['destination']
-                findings_html += f"<tr><td class='mono'>{dst}</td><td>{b['mean_interval_seconds']}s</td><td>{b['std_deviation']}s</td><td>{b['regularity']:.0%}</td></tr>"
-            findings_html += "</table>"
-
-        if f.get('tls_sni'):
-            findings_html += "<h4>Encrypted Destinations (TLS SNI)</h4><table>"
-            findings_html += "<tr><th>Server Name</th><th>Connections</th></tr>"
-            for s in f['tls_sni'][:10]:
-                findings_html += f"<tr><td class='mono'>{s['server_name']}</td><td>{s['count']}</td></tr>"
-            findings_html += "</table>"
-
-        if f.get('dns_queries'):
-            findings_html += "<h4>DNS Queries</h4><table>"
-            findings_html += "<tr><th>Domain</th><th>Count</th></tr>"
-            for d in f['dns_queries'][:10]:
-                findings_html += f"<tr><td class='mono'>{d['domain']}</td><td>{d['count']}</td></tr>"
-            findings_html += "</table>"
-
-        if f.get('http_requests'):
-            findings_html += "<h4>HTTP Requests (Cleartext)</h4><table>"
-            findings_html += "<tr><th>Method</th><th>Host</th><th>URI</th><th>User-Agent</th></tr>"
-            for r in f['http_requests'][:10]:
-                host = redactor.redact(r['host']) if redactor else r['host']
-                findings_html += f"<tr><td>{r['method']}</td><td class='mono'>{host}</td><td class='mono'>{r['uri']}</td><td>{r['user_agent'][:40]}</td></tr>"
-            findings_html += "</table>"
-
-    narrative_section = ''
-    if narrative:
-        narrative_section = f"""
-        <h2>Analyst Narrative</h2>
-        <div class="narrative">{narrative.replace(chr(10), '<br>')}</div>
-        <p class="meta">Generated by: Local LLM (Ollama) — no data left this device.</p>
-        """
-
-    html = f"""<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>StarFire Forensics Report</title>
-<style>
-body {{ font-family:Georgia,serif; max-width:820px; margin:2rem auto; padding:0 2rem; color:#1a1a1a; line-height:1.75; }}
-h1 {{ text-align:center; font-size:1.4rem; }}
-h2 {{ border-bottom:2px solid #333; padding-bottom:0.3rem; margin-top:2rem; }}
-h3 {{ margin-top:1.5rem; }}
-h4 {{ margin-top:1rem; font-size:0.9rem; }}
-table {{ width:100%; border-collapse:collapse; margin:0.75rem 0; font-size:0.85rem; }}
-th,td {{ border:1px solid #ccc; padding:0.4rem 0.6rem; text-align:left; }}
-th {{ background:#f0f0f0; }}
-.mono {{ font-family:'Courier New',monospace; font-size:0.8rem; }}
-.meta {{ font-size:0.75rem; color:#666; font-style:italic; }}
-.seal {{ border:2px solid #333; padding:1rem; margin:1rem 0; background:#f5f8f5; }}
-.narrative {{ background:#f9f9f9; border:1px solid #ddd; padding:1rem; margin:0.75rem 0; line-height:1.8; }}
-@media print {{ body {{ font-size:10.5pt; }} }}
-</style>
-</head>
-<body>
-<h1>NETWORK FORENSIC ANALYSIS REPORT</h1>
-<p style="text-align:center;">StarFire Forensics Toolkit — Standalone Analysis<br>
-<span class="meta">Mode: {'OFFLINE (No AI, No Network)' if not narrative else 'LOCAL LLM (Ollama, No Cloud)'} | Generated: {seal['seal_time']}</span></p>
-
-<h2>Chain of Custody</h2>
-<div class="seal">
-<p><strong>Vault Seal:</strong> <span class="mono">{seal['vault_seal_sha256']}</span></p>
-<p><strong>Network calls made:</strong> 0 | <strong>AI API calls made:</strong> 0</p>
-<p><strong>Analysis start:</strong> {seal['start_time']} | <strong>Sealed:</strong> {seal['seal_time']}</p>
-</div>
-
-<h2>Evidence Examined</h2>
-<table>
-<tr><th>File</th><th>Size (bytes)</th><th>SHA-256</th><th>Status</th></tr>
-{evidence_rows}
-</table>
-
-{narrative_section}
-
-<h2>Technical Findings</h2>
-{findings_html}
-
-<div class="seal" style="margin-top:2rem;">
-<p><strong>VAULT SEAL:</strong> <span class="mono">{seal['vault_seal_sha256']}</span></p>
-<p class="meta">This hash covers all evidence hashes and analysis outputs. Verify: hash the custody.json file with SHA-256.</p>
-</div>
-</body>
-</html>"""
-
-    return html
-
-
-# ============================================================
-# CLI
-# ============================================================
 
 def main():
     parser = argparse.ArgumentParser(
-        description='StarFire Forensics — Standalone PCAP Analysis',
+        description="StarFire Forensic Analyzer — LATTICE TEAM KHET-1",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  ./starfire analyze capture.pcap --offline --report html
-  ./starfire analyze *.pcapng --local-llm --redact-internal --report pdf
-  ./starfire analyze evidence/ --offline --redact-map redactions.json
+  ./starfire analyze capture.pcap
+  ./starfire analyze *.pcapng --output ./report --local-llm
+  ./starfire full /evidence/ --redact-internal
         """)
 
-    sub = parser.add_subparsers(dest='command')
-    analyze = sub.add_parser('analyze', help='Analyze pcap files')
-    analyze.add_argument('files', nargs='+', help='PCAP/PCAPNG files or directories')
-    analyze.add_argument('--offline', action='store_true', default=True,
-                        help='Pure offline analysis, no AI (default)')
-    analyze.add_argument('--local-llm', action='store_true',
-                        help='Use local Ollama model for narrative generation')
-    analyze.add_argument('--model', default='llama3.1:8b',
-                        help='Ollama model name (default: llama3.1:8b)')
-    analyze.add_argument('--redact', action='store_true',
-                        help='Enable redaction (use with --redact-map or --redact-internal)')
-    analyze.add_argument('--redact-internal', action='store_true',
-                        help='Auto-redact all RFC1918 (internal) IP addresses')
-    analyze.add_argument('--redact-map', help='Path to redaction map JSON file')
-    analyze.add_argument('--report', choices=['html', 'json', 'both'], default='html',
-                        help='Output format (default: html)')
-    analyze.add_argument('--output', '-o', default='.',
-                        help='Output directory (default: current)')
+    parser.add_argument("command", choices=["analyze", "full", "seal", "verify"],
+                       help="analyze: run analysis | full: analyze+report | seal: hash evidence | verify: check hashes")
+    parser.add_argument("pcap_path", nargs="*", help="PCAP files or directories")
+    parser.add_argument("--output", "-o", default="reports", help="Output directory")
+    parser.add_argument("--offline", action="store_true", default=True,
+                       help="Force offline zero-AI mode (default)")
+    parser.add_argument("--local-llm", action="store_true",
+                       help="Enable local Ollama narrative generation")
+    parser.add_argument("--model", default="llama3.1:8b",
+                       help="Ollama model (default: llama3.1:8b)")
+    parser.add_argument("--redact-internal", action="store_true",
+                       help="Auto-redact RFC1918 IP addresses")
+    parser.add_argument("--redact-map", help="Path to custom redaction JSON map")
+    parser.add_argument("--quick", action="store_true",
+                       help="Quick scan (skip deep analysis)")
 
     args = parser.parse_args()
 
-    if not args.command:
-        parser.print_help()
-        sys.exit(0)
+    # Block all network
+    os.environ['NO_PROXY'] = '*'
+    os.environ['no_proxy'] = '*'
 
-    if args.command == 'analyze':
-        print("StarFire Forensics — Standalone Analysis")
-        print(f"Mode: {'LOCAL LLM' if args.local_llm else 'OFFLINE (No AI)'}")
-        print(f"Network calls: BLOCKED")
-        print()
+    output_dir = Path(args.output)
+    output_dir.mkdir(parents=True, exist_ok=True)
 
-        # Collect pcap files
-        pcap_files = []
-        for f in args.files:
-            p = Path(f)
-            if p.is_dir():
-                pcap_files.extend(p.glob('*.pcap'))
-                pcap_files.extend(p.glob('*.pcapng'))
-            elif p.is_file():
-                pcap_files.append(p)
+    mode = "OFFLINE ZERO-AI" if not args.local_llm else "OFFLINE + LOCAL LLM"
+    print(f"StarFire Forensic Analyzer — KHET-1")
+    print(f"Mode: {mode}")
+    print(f"Network: BLOCKED")
+    print()
 
-        if not pcap_files:
-            print("No pcap files found.")
+    # Collect pcap files
+    pcap_files = []
+    for p in (args.pcap_path or ['.']):
+        path = Path(p)
+        if path.is_dir():
+            pcap_files.extend(path.glob('*.pcap'))
+            pcap_files.extend(path.glob('*.pcapng'))
+        elif path.is_file():
+            pcap_files.append(path)
+
+    if not pcap_files and args.command in ('analyze', 'full'):
+        print("No pcap files found. Provide file paths or a directory.")
+        sys.exit(1)
+
+    # ── SEAL ──
+    if args.command == 'seal':
+        sealer = EvidenceSealer()
+        for f in pcap_files:
+            item = sealer.ingest(str(f))
+            print(f"  SEALED: {item.filename} | {item.sha256[:32]}...")
+        root = sealer.seal()
+        manifest = sealer.save_manifest(str(output_dir / 'chain_of_custody.json'))
+        print(f"\nMerkle Root: {root}")
+        print(f"Manifest: {output_dir / 'chain_of_custody.json'}")
+        return
+
+    # ── VERIFY ──
+    if args.command == 'verify':
+        import json
+        custody_path = output_dir / 'chain_of_custody.json'
+        if not custody_path.exists():
+            print("No chain_of_custody.json found. Run 'seal' first.")
             sys.exit(1)
+        custody = json.loads(custody_path.read_text())
+        sealer = EvidenceSealer()
+        for item in custody.get('items', []):
+            sealer.ingest(item['filepath'])
+        results = sealer.verify_all()
+        all_ok = all(results.values())
+        for name, ok in results.items():
+            status = "VERIFIED" if ok else "FAILED"
+            print(f"  {name}: {status}")
+        print(f"\nIntegrity: {'ALL VERIFIED' if all_ok else 'INTEGRITY FAILURE DETECTED'}")
+        return
 
-        print(f"Evidence files: {len(pcap_files)}")
+    # ── ANALYZE / FULL ──
+    print(f"Evidence: {len(pcap_files)} file(s)")
 
-        # Chain of custody
-        custody = ChainOfCustody()
-        for f in pcap_files:
-            entry = custody.seal_file(f, 'evidence')
-            print(f"  SEALED: {f.name} | SHA-256: {entry['sha256'][:32]}...")
+    # Phase 0: Seal evidence
+    sealer = EvidenceSealer()
+    for f in pcap_files:
+        item = sealer.ingest(str(f))
+        print(f"  SEALED: {item.filename} | {item.sha256[:32]}...")
+    sealer.seal()
+    print()
 
-        # Redaction
-        redactor = None
-        if args.redact or args.redact_internal or args.redact_map:
-            redactor = Redactor(redact_internal=args.redact_internal)
-            if args.redact_map:
-                redactor.load_map(args.redact_map)
+    # Phase 1: Parse
+    print("Parsing packets...")
+    pcap_parser = PcapParser()
+    df = pcap_parser.parse_multiple([str(f) for f in pcap_files])
+    print(f"  {len(df)} packets parsed")
+    print()
 
-        # Analyze
+    if len(df) == 0:
+        print("No packets found.")
+        sys.exit(1)
+
+    # Detect local IPs
+    local_ips = set()
+    local_ips.add('127.0.0.1')
+    top_src = df['src_ip'].value_counts().head(3).index.tolist()
+    local_ips.update([ip for ip in top_src if ip])
+    local_ips.discard(None)
+
+    # Phase 2: Councils
+    if not args.quick:
+        print("Running Red Council (attribution)...")
+        red = RedCouncil()
+        red_findings = red.analyze(df, local_ips)
+        print(f"  {len(red_findings)} findings")
+
+        print("Running Blue Council (innocence)...")
+        blue = BlueCouncil()
+        blue_findings = blue.analyze(df, local_ips)
+        print(f"  {len(blue_findings)} findings")
+
+        print("Final Maker resolving...")
+        maker = FinalMaker()
+        verdicts, debate_log = maker.resolve(red_findings, blue_findings)
+        alignment = maker.get_alignment()
+        print(f"  {len(debate_log)} debates | Alignment: {alignment:.0%}")
         print()
-        all_findings = []
-        for f in pcap_files:
-            print(f"Analyzing: {f.name}...")
-            findings = analyze_pcap(f)
-            all_findings.append(findings)
-            print(f"  {findings['packets']} packets | {findings['duration_seconds']:.1f}s | "
-                  f"{len(findings.get('beacon_candidates',[]))} beacons | "
-                  f"{len(findings.get('tls_sni',[]))} TLS destinations")
+    else:
+        red_findings = []
+        blue_findings = []
+        verdicts = []
+        debate_log = []
+        alignment = 1.0
 
-        # Local LLM narrative (optional)
-        narrative = None
-        if args.local_llm:
-            print()
-            print("Generating narrative (local LLM)...")
-            narrative = generate_narrative_local(all_findings, args.model)
-            print(f"  Generated: {len(narrative)} chars")
+    # Build results dict
+    protocols = df['protocol'].value_counts().to_dict() if 'protocol' in df.columns else {}
+    duration = (df['time'].max() - df['time'].min()).total_seconds() if len(df) > 1 else 0
 
-        # Generate report
-        output_dir = Path(args.output)
-        output_dir.mkdir(parents=True, exist_ok=True)
+    # Determine classification
+    classification = "UNDETERMINED"
+    confidence = 50
+    if verdicts:
+        red_wins = sum(1 for v in verdicts if v.resolution == "RED_PREVAILS")
+        blue_wins = sum(1 for v in verdicts if v.resolution == "BLUE_PREVAILS")
+        if blue_wins > red_wins:
+            classification = "LIKELY BENIGN"
+            confidence = 85
+        elif red_wins > blue_wins:
+            classification = "SUSPICIOUS"
+            confidence = 70
 
-        if args.report in ('html', 'both'):
-            html = generate_html_report(all_findings, custody, redactor, narrative)
-            html_path = output_dir / 'starfire_report.html'
-            html_path.write_text(html)
-            custody.seal_output(html_path, 'report')
-            print(f"\nReport: {html_path}")
+    results = {
+        "final_classification": classification,
+        "confidence": confidence,
+        "council_alignment": f"{alignment:.0%}",
+        "verdict": f"{classification} (confidence {confidence}%)",
+        "total_packets": len(df),
+        "total_bytes": int(df['length'].sum()) if 'length' in df.columns else 0,
+        "duration": f"{duration:.1f} seconds",
+        "first_packet": str(df['time'].min()) if 'time' in df.columns else "",
+        "last_packet": str(df['time'].max()) if 'time' in df.columns else "",
+        "protocols": protocols,
+        "key_findings": [
+            {"title": f.hypothesis, "detail": f.evidence}
+            for f in (red_findings + [bf for bf in blue_findings if bf.confidence > 0.8])[:6]
+        ],
+        "castles": [
+            {"name": v.red_finding.hypothesis[:60], "severity": v.red_finding.severity,
+             "conclusion": v.reasoning, "confidence": v.winning_confidence,
+             "council_origin": "merged" if v.resolution != "UNCHALLENGED_RED" else "red"}
+            for v in verdicts
+        ] if verdicts else [],
+        "debate": {"debate_log": debate_log},
+        "drip_trace": [],
+        "payloads": [],
+        "processes": {},
+        "residual_risks": []
+    }
 
-        if args.report in ('json', 'both'):
-            json_out = {
-                'findings': all_findings,
-                'narrative': narrative
-            }
-            if redactor:
-                json_out = redactor.redact_dict(json_out)
-            json_path = output_dir / 'starfire_report.json'
-            json_path.write_text(json.dumps(json_out, indent=2, default=str))
-            custody.seal_output(json_path, 'report')
-            print(f"JSON:   {json_path}")
-
-        # Write custody file
-        seal = custody.generate_vault_seal()
-        custody_path = output_dir / 'custody.json'
-        custody_path.write_text(json.dumps(seal, indent=2))
-        print(f"Custody: {custody_path}")
-        print(f"\nVAULT SEAL: {seal['vault_seal_sha256']}")
-        print(f"Network calls: 0 | AI API calls: 0")
+    # Phase 3: Generate report
+    if args.command == 'full' or args.command == 'analyze':
+        print("Generating StarFire report...")
+        report = StarFireReport(output_dir=str(output_dir))
+        custody_manifest = sealer.to_manifest()
+        report.generate(results, custody_manifest=custody_manifest, use_local_llm=args.local_llm)
+        sealer.save_manifest(str(output_dir / 'chain_of_custody.json'))
+        print()
+        print(f"Analysis complete.")
+        print(f"  Report: {output_dir}/starfire_report.html")
+        print(f"  JSON:   {output_dir}/starfire_report.json")
+        print(f"  Chain:  {output_dir}/chain_of_custody.json")
+        print(f"  Merkle: {output_dir}/merkle_manifest.json")
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
