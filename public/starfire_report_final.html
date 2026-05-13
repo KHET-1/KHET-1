@@ -176,21 +176,45 @@ function openTab(tabId) {
 
     if (tabId === "summary") {
         var s = reportData.executive_summary;
+        var files = reportData.evidence_chain.files;
         content.innerHTML += '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">' +
             '<div class="bg-green-50 border border-green-200 p-5 rounded-2xl text-center"><div class="text-3xl font-bold text-green-700">' + s.confidence + '%</div><div class="text-xs text-green-600 mt-1">CONFIDENCE</div></div>' +
             '<div class="bg-blue-50 border border-blue-200 p-5 rounded-2xl text-center"><div class="text-lg font-bold text-blue-700">' + s.classification + '</div><div class="text-xs text-blue-600 mt-1">CLASSIFICATION</div></div>' +
             '<div class="bg-amber-50 border border-amber-200 p-5 rounded-2xl text-center"><div class="text-2xl font-bold text-amber-700">' + s.total_packets.toLocaleString() + '</div><div class="text-xs text-amber-600 mt-1">PACKETS</div></div>' +
             '<div class="bg-purple-50 border border-purple-200 p-5 rounded-2xl text-center"><div class="text-xl font-bold text-purple-700">' + s.council_alignment + '</div><div class="text-xs text-purple-600 mt-1">ALIGNMENT</div></div>' +
             '</div>' +
-            '<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">' +
-            '<div class="bg-gray-50 border rounded-xl p-4 text-center"><div class="text-lg font-bold">' + (s.total_bytes / 1024 / 1024).toFixed(1) + ' MB</div><div class="text-xs text-gray-500 mt-0.5">Evidence Volume</div></div>' +
-            '<div class="bg-gray-50 border rounded-xl p-4 text-center"><div class="text-lg font-bold">' + s.duration + '</div><div class="text-xs text-gray-500 mt-0.5">Duration</div></div>' +
-            '<div class="bg-gray-50 border rounded-xl p-4 text-center"><div class="text-lg font-bold text-red-600">' + s.red_findings + ' Red</div><div class="text-xs text-gray-500 mt-0.5">Findings</div></div>' +
-            '<div class="bg-gray-50 border rounded-xl p-4 text-center"><div class="text-lg font-bold text-blue-600">' + s.blue_findings + ' Blue</div><div class="text-xs text-gray-500 mt-0.5">Findings</div></div>' +
-            '</div>' +
             '<div class="bg-gray-50 border rounded-2xl p-5 mb-6"><strong>Verdict:</strong> <span class="text-lg ml-2">' + s.verdict + '</span>' +
-            '<p class="text-xs text-gray-500 mt-1">Capture: ' + s.capture_window + ' | Debates: ' + s.debates_resolved + ' resolved</p></div>' +
-            '<div class="bg-white border rounded-2xl p-5"><strong class="text-sm">Key Findings:</strong><ul class="mt-2 space-y-1.5 text-sm text-gray-700 list-disc pl-5">' +
+            '<p class="text-xs text-gray-500 mt-1">Capture: ' + s.capture_window + ' | Duration: ' + s.duration + ' | Debates: ' + s.debates_resolved + ' resolved</p></div>';
+
+        // Per-PCAP summary cards
+        content.innerHTML += '<h3 class="text-lg font-semibold mb-3">Evidence Files — Per-Capture Summary</h3>' +
+            '<div class="space-y-3 mb-6">';
+        for (var fi = 0; fi < files.length; fi++) {
+            var f = files[fi];
+            var findings = [];
+            if (fi === 0) findings = ['6,323 packets over 4m25s','Primary beaconing detected (7.2s to Mac Mini)','QUIC + TLS to grok.com, duckduckgo.com','DNS queries: apackets.com (20x), google.com (16x)','Cross-subnet probe to 192.168.1.46:8083 (104 pkts)'];
+            if (fi === 1) findings = ['2,925 packets over 2m31s','Sustained polling: GET /status + GET /api/notes','api2.cursor.sh (TLS SNI) — Cursor IDE traffic','HTTP responses decoded: "online", "crd-mac-mini-bombshell"'];
+            if (fi === 2) findings = ['280 packets over 14.8s','Short burst: Cursor + Mac Mini polling','Connections to AWS (18.212.44.114, 54.225.137.211)','Initial session establishment visible'];
+            content.innerHTML += '<div class="border rounded-2xl overflow-hidden">' +
+                '<div class="bg-gray-100 px-5 py-3 flex justify-between items-center cursor-pointer" onclick="openTab(\'evidence\')">' +
+                '<span class="font-mono text-sm font-semibold">' + f.name + '</span>' +
+                '<span class="text-xs text-gray-500">' + f.size + ' | ' + f.packets + ' pkts | ' + f.duration + '</span></div>' +
+                '<div class="p-4"><ul class="space-y-1 text-sm text-gray-700">';
+            for (var fj = 0; fj < findings.length; fj++) {
+                var linkTab = 'timeline';
+                if (findings[fj].indexOf('beacon') > -1 || findings[fj].indexOf('polling') > -1) linkTab = 'castles';
+                if (findings[fj].indexOf('DNS') > -1 || findings[fj].indexOf('TLS') > -1) linkTab = 'timeline';
+                if (findings[fj].indexOf('HTTP') > -1 || findings[fj].indexOf('response') > -1) linkTab = 'payloads';
+                if (findings[fj].indexOf('Cross-subnet') > -1) linkTab = 'debate';
+                content.innerHTML += '<li class="flex items-start gap-2"><span class="text-gray-400 mt-0.5">•</span><span class="flex-1">' + findings[fj] + '</span>' +
+                    '<button onclick="event.stopPropagation();openTab(\'' + linkTab + '\')" class="text-xs text-red-600 hover:text-red-500 whitespace-nowrap">→ ' + linkTab + '</button></li>';
+            }
+            content.innerHTML += '</ul></div></div>';
+        }
+        content.innerHTML += '</div>';
+
+        // Key findings
+        content.innerHTML += '<div class="bg-white border rounded-2xl p-5"><strong class="text-sm">Key Findings (All Files Combined):</strong><ul class="mt-2 space-y-1.5 text-sm text-gray-700 list-disc pl-5">' +
             s.key_findings.map(function(f) { return '<li>' + f + '</li>'; }).join('') +
             '</ul></div>';
     }
