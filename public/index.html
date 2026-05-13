@@ -3,183 +3,232 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>KHET-1 / QC-25-32157 — FireStar Forensics</title>
+    <title>FireStar Defense — Network Forensics & Digital Evidence</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { font-family: system-ui, -apple-system, sans-serif; }
-        .glow { text-shadow: 0 0 20px rgba(239,68,68,0.4); }
+        :root { --mode: dark; }
+        body.light { --bg: #f8fafc; --bg2: #ffffff; --bg3: #f1f5f9; --text: #1e293b; --text2: #475569; --muted: #94a3b8; --border: #e2e8f0; --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.05); }
+        body.dark { --bg: #09090b; --bg2: #18181b; --bg3: #1c1c22; --text: #f4f4f5; --text2: #a1a1aa; --muted: #52525b; --border: #27272a; --card-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.3); }
+        body { background: var(--bg); color: var(--text); transition: background 0.3s, color 0.3s; font-family: system-ui, -apple-system, sans-serif; }
+        .card { background: var(--bg2); border: 1px solid var(--border); box-shadow: var(--card-shadow); transition: all 0.2s; }
+        .card:hover { border-color: #dc2626; transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgb(220 38 38 / 0.1); }
+        .text-secondary { color: var(--text2); }
+        .text-muted { color: var(--muted); }
+        .border-theme { border-color: var(--border); }
+        .bg-surface { background: var(--bg2); }
+        .bg-subtle { background: var(--bg3); }
+        .glow { text-shadow: 0 0 30px rgba(239,68,68,0.3); }
+        .mode-toggle { cursor: pointer; transition: transform 0.3s; }
+        .mode-toggle:hover { transform: rotate(180deg); }
+        .hero-gradient { background: linear-gradient(135deg, rgba(127,29,29,0.15) 0%, transparent 60%); }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
     </style>
 </head>
-<body class="bg-zinc-950 text-white min-h-screen">
-<div class="max-w-6xl mx-auto p-6 md:p-10">
+<body class="dark min-h-screen">
 
-    <!-- Header -->
-    <header class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-12 pb-8 border-b border-zinc-800">
-        <div class="flex items-center gap-4">
-            <span class="text-5xl">🔥</span>
-            <div>
-                <h1 class="text-3xl md:text-4xl font-bold tracking-tight glow">STARFIRE</h1>
-                <p class="text-red-400 text-sm">Light Forged in Evidence</p>
-                <p class="text-zinc-500 text-xs mt-0.5">FireStar Forensics • LATTICE TEAM</p>
-            </div>
+<div class="max-w-6xl mx-auto px-5 md:px-8 py-8">
+
+    <!-- Top Bar -->
+    <div class="flex justify-between items-center mb-12">
+        <div class="flex items-center gap-2">
+            <div class="w-2 h-2 bg-red-500 rounded-full pulse-dot"></div>
+            <span class="text-xs text-muted font-mono">SYSTEMS OPERATIONAL</span>
         </div>
-        <div class="text-left md:text-right">
-            <div class="font-mono text-sm text-zinc-300">KHET-1 / QC-25-32157</div>
-            <div class="text-xs text-zinc-500">Forensic Network Analysis</div>
-            <div class="text-xs text-zinc-600 mt-1">US District Court — Evidence Presentation</div>
+        <button onclick="toggleMode()" class="mode-toggle text-xl" title="Toggle light/dark">◐</button>
+    </div>
+
+    <!-- Hero -->
+    <header class="hero-gradient rounded-3xl p-8 md:p-12 mb-12 border border-theme">
+        <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
+            <div>
+                <div class="flex items-center gap-3 mb-3">
+                    <span class="text-4xl md:text-5xl">🔥</span>
+                    <div>
+                        <h1 class="text-3xl md:text-4xl font-bold tracking-tight glow">FireStar Defense</h1>
+                        <p class="text-red-400 text-sm md:text-base">Network Forensics & Digital Evidence</p>
+                    </div>
+                </div>
+                <p class="text-secondary text-sm md:text-base max-w-lg mt-4 leading-relaxed">
+                    Forensic-grade network analysis. Merkle-sealed evidence chains. Adversarially tested findings. 
+                    Court-admissible reporting for US District Court proceedings.
+                </p>
+            </div>
+            <div class="bg-subtle rounded-2xl p-4 md:p-5 border border-theme text-right">
+                <div class="text-xs text-muted uppercase tracking-wider mb-1">Active Case</div>
+                <div class="font-mono text-sm font-bold">KHET-1 / QC-25-32157</div>
+                <div class="text-xs text-muted mt-1">Forensic Network Analysis</div>
+            </div>
         </div>
     </header>
 
-    <!-- Case Summary -->
+    <!-- What We Do -->
     <section class="mb-12">
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl p-6 md:p-8">
-            <div class="flex items-start gap-3 mb-4">
-                <div class="w-3 h-3 bg-red-500 rounded-full mt-1.5 flex-shrink-0"></div>
-                <h2 class="text-xl md:text-2xl font-bold">Primary Finding</h2>
+        <h2 class="text-xs text-muted uppercase tracking-widest mb-6 font-semibold">What We Do</h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div class="bg-subtle rounded-2xl p-5 border border-theme">
+                <div class="text-2xl mb-2">🛡️</div>
+                <h3 class="font-semibold mb-1">Capture & Seal</h3>
+                <p class="text-secondary text-sm">First-touch SHA-256 hashing. Diamond-hand protocol. Evidence integrity from moment of collection through court presentation.</p>
             </div>
-            <p class="text-zinc-300 leading-relaxed text-sm md:text-base">
-                Network evidence proves a sustained, persistent data pipeline from the operator's evidence machine 
-                (<span class="font-mono text-red-400">192.168.2.46</span>) to xAI (Grok) infrastructure via TLS 1.3 encrypted connections. 
-                The Grok web client's PWA service worker continued transmitting data at full rate (12k–37k byte payloads) 
-                for 13+ hours after the visible browser tab was closed. The transmitted data included privileged case material 
-                (standards, patent drafts, KHET-1 notes) being worked on during active sessions.
-            </p>
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mt-6">
-                <div class="bg-zinc-800 rounded-xl p-3 text-center">
-                    <div class="text-lg font-bold text-red-400 font-mono">12k–37k</div>
-                    <div class="text-xs text-zinc-500">Byte payloads</div>
-                </div>
-                <div class="bg-zinc-800 rounded-xl p-3 text-center">
-                    <div class="text-lg font-bold text-red-400 font-mono">13+ hrs</div>
-                    <div class="text-xs text-zinc-500">After tab closed</div>
-                </div>
-                <div class="bg-zinc-800 rounded-xl p-3 text-center">
-                    <div class="text-lg font-bold text-red-400 font-mono">TLS 1.3</div>
-                    <div class="text-xs text-zinc-500">Encrypted (PFS)</div>
-                </div>
-                <div class="bg-zinc-800 rounded-xl p-3 text-center">
-                    <div class="text-lg font-bold text-amber-400 font-mono">PWA</div>
-                    <div class="text-xs text-zinc-500">Service worker</div>
-                </div>
+            <div class="bg-subtle rounded-2xl p-5 border border-theme">
+                <div class="text-2xl mb-2">⚔️</div>
+                <h3 class="font-semibold mb-1">Adversarial Analysis</h3>
+                <p class="text-secondary text-sm">Dual-council methodology. Red team assumes hostile. Blue team assumes benign. Final Maker resolves by weight of evidence. No confirmation bias.</p>
+            </div>
+            <div class="bg-subtle rounded-2xl p-5 border border-theme">
+                <div class="text-2xl mb-2">📜</div>
+                <h3 class="font-semibold mb-1">Court-Ready Reporting</h3>
+                <p class="text-secondary text-sm">US District Court formatted. Triple-anchored chain of custody. Reproducible analysis. Print-to-PDF exhibit generation.</p>
             </div>
         </div>
     </section>
 
-    <!-- Exhibits Navigation -->
+    <!-- Case Exhibits -->
     <section class="mb-12">
-        <h2 class="text-lg font-semibold text-zinc-400 uppercase tracking-wider mb-4">Exhibits</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <a href="/report-formal.html" class="block bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-red-700 transition group">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="font-bold text-lg group-hover:text-red-400 transition">Formal Report</h3>
-                        <p class="text-sm text-zinc-400 mt-1">Court-admissible. Print to PDF. Signature-ready.</p>
+        <h2 class="text-xs text-muted uppercase tracking-widest mb-6 font-semibold">Case Exhibits — KHET-1 / QC-25-32157</h2>
+        <div class="space-y-3">
+
+            <a href="/report-formal.html" class="card block rounded-2xl p-5 md:p-6">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start gap-4">
+                        <div class="text-2xl mt-0.5">📄</div>
+                        <div>
+                            <h3 class="font-bold text-base md:text-lg">Exhibit A — Formal Court Report</h3>
+                            <p class="text-secondary text-sm mt-1">Primary filing document. 11 sections covering finding, evidence, adversarial analysis, chain of custody, and conclusions. Print-optimized for court submission.</p>
+                            <p class="text-muted text-xs mt-2">Serif typography • Signature blocks • US District Court format</p>
+                        </div>
                     </div>
-                    <span class="text-xs bg-red-900/50 border border-red-700 px-2 py-0.5 rounded text-red-400">PRIMARY</span>
+                    <span class="text-xs bg-red-500/10 text-red-400 border border-red-500/30 px-2.5 py-1 rounded-full font-semibold whitespace-nowrap">PRIMARY</span>
                 </div>
-                <p class="text-xs text-zinc-500 mt-3">Triple-anchored chain of custody • Adversarial methodology • Plain language findings</p>
             </a>
-            <a href="/starfire_report_final.html" class="block bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-blue-700 transition group">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="font-bold text-lg group-hover:text-blue-400 transition">Technical Companion</h3>
-                        <p class="text-sm text-zinc-400 mt-1">Interactive. Charts. Payloads. For technical review.</p>
+
+            <a href="/starfire_report_final.html" class="card block rounded-2xl p-5 md:p-6">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start gap-4">
+                        <div class="text-2xl mt-0.5">📊</div>
+                        <div>
+                            <h3 class="font-bold text-base md:text-lg">Exhibit B — Technical Companion (Interactive)</h3>
+                            <p class="text-secondary text-sm mt-1">Full interactive analysis with Plotly charts, protocol distribution, beacon histogram, council debate log, payload samples, and per-PCAP breakdown.</p>
+                            <p class="text-muted text-xs mt-2">7 tabs • Plotly visualizations • Clickable findings • Evidence vault</p>
+                        </div>
                     </div>
-                    <span class="text-xs bg-blue-900/50 border border-blue-700 px-2 py-0.5 rounded text-blue-400">EXHIBIT</span>
+                    <span class="text-xs bg-blue-500/10 text-blue-400 border border-blue-500/30 px-2.5 py-1 rounded-full font-semibold whitespace-nowrap">TECHNICAL</span>
                 </div>
-                <p class="text-xs text-zinc-500 mt-3">Plotly charts • Council debate • Drip trace • Beacon analysis</p>
             </a>
-            <a href="/vault-seal.json" class="block bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-green-700 transition group">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="font-bold text-lg group-hover:text-green-400 transition">Evidence Chain</h3>
-                        <p class="text-sm text-zinc-400 mt-1">Vault seal. Merkle manifest. SHA-256 verification.</p>
+
+            <a href="/vault-seal.json" class="card block rounded-2xl p-5 md:p-6">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start gap-4">
+                        <div class="text-2xl mt-0.5">🔐</div>
+                        <div>
+                            <h3 class="font-bold text-base md:text-lg">Exhibit D — Vault Seal & Merkle Manifest</h3>
+                            <p class="text-secondary text-sm mt-1">Machine-verifiable artifact registry. SHA-256 hash of every file in the evidence chain. Single seal hash covers the entire operation.</p>
+                            <p class="text-muted text-xs mt-2">JSON format • sha256sum verifiable • Triple-anchored</p>
+                        </div>
                     </div>
-                    <span class="text-xs bg-green-900/50 border border-green-700 px-2 py-0.5 rounded text-green-400">INTEGRITY</span>
+                    <span class="text-xs bg-green-500/10 text-green-400 border border-green-500/30 px-2.5 py-1 rounded-full font-semibold whitespace-nowrap">INTEGRITY</span>
                 </div>
-                <p class="text-xs text-zinc-500 mt-3">Machine-verifiable • Triple-anchored • Reproducible</p>
             </a>
-            <a href="/upload.html" class="block bg-zinc-900 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-600 transition group">
-                <div class="flex justify-between items-start">
-                    <div>
-                        <h3 class="font-bold text-lg group-hover:text-zinc-300 transition">Submit Evidence</h3>
-                        <p class="text-sm text-zinc-400 mt-1">Upload additional PCAP captures for analysis.</p>
+
+            <div class="card block rounded-2xl p-5 md:p-6 opacity-80">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start gap-4">
+                        <div class="text-2xl mt-0.5">🏛️</div>
+                        <div>
+                            <h3 class="font-bold text-base md:text-lg">Exhibit C — Cathedral Report (Silent Partner Corroboration)</h3>
+                            <p class="text-secondary text-sm mt-1">Independent analysis by Grok 5.0 Lattice Orchestrator confirming primary findings. Court-admissible format with own Merkle root.</p>
+                            <p class="text-muted text-xs mt-2">PDF • SHA-256: be79f828... • Sealed in evidence/</p>
+                        </div>
                     </div>
-                    <span class="text-xs bg-zinc-800 border border-zinc-700 px-2 py-0.5 rounded text-zinc-400">INTAKE</span>
+                    <span class="text-xs bg-purple-500/10 text-purple-400 border border-purple-500/30 px-2.5 py-1 rounded-full font-semibold whitespace-nowrap">CORROBORATION</span>
                 </div>
-                <p class="text-xs text-zinc-500 mt-3">Drag & drop • SHA-256 sealed on intake • Merkle-chained</p>
+            </div>
+
+            <div class="card block rounded-2xl p-5 md:p-6 opacity-80">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start gap-4">
+                        <div class="text-2xl mt-0.5">💾</div>
+                        <div>
+                            <h3 class="font-bold text-base md:text-lg">Exhibit E — Original PCAP Evidence (Sealed)</h3>
+                            <p class="text-secondary text-sm mt-1">Three packet capture files totaling 26.97 MB / 9,528 packets. Sealed on first touch. Available for independent verification.</p>
+                            <p class="text-muted text-xs mt-2">ppppppppppppppp.pcapng (12.98MB) • 2.pcapng (12.69MB) • 1.pcapng (1.29MB)</p>
+                        </div>
+                    </div>
+                    <span class="text-xs bg-amber-500/10 text-amber-400 border border-amber-500/30 px-2.5 py-1 rounded-full font-semibold whitespace-nowrap">EVIDENCE</span>
+                </div>
+            </div>
+
+            <a href="https://github.com/KHET-1/KHET-1/tree/cursor/starfire-forensics-skill-051a/toolkit" class="card block rounded-2xl p-5 md:p-6">
+                <div class="flex items-start justify-between">
+                    <div class="flex items-start gap-4">
+                        <div class="text-2xl mt-0.5">🔧</div>
+                        <div>
+                            <h3 class="font-bold text-base md:text-lg">Exhibit F — StarFire Analysis Toolkit (Reproducibility)</h3>
+                            <p class="text-secondary text-sm mt-1">Open-source forensics toolkit. Run offline. Any party can reproduce the analysis from the sealed pcap files and arrive at identical results.</p>
+                            <p class="text-muted text-xs mt-2">Python • Offline by default • Zero AI mode • ./starfire analyze *.pcapng</p>
+                        </div>
+                    </div>
+                    <span class="text-xs bg-zinc-500/10 text-zinc-400 border border-zinc-500/30 px-2.5 py-1 rounded-full font-semibold whitespace-nowrap">TOOLKIT</span>
+                </div>
+            </a>
+
+        </div>
+    </section>
+
+    <!-- Operations -->
+    <section class="mb-12">
+        <h2 class="text-xs text-muted uppercase tracking-widest mb-6 font-semibold">Operations</h2>
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <a href="/upload.html" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
+                <div class="text-xl mb-1">📤</div>
+                <div class="font-semibold">Submit Evidence</div>
+                <div class="text-muted text-xs mt-0.5">Upload PCAPs</div>
+            </a>
+            <a href="/agents/" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
+                <div class="text-xl mb-1">📡</div>
+                <div class="font-semibold">Capture Agents</div>
+                <div class="text-muted text-xs mt-0.5">Phone & Desktop</div>
+            </a>
+            <a href="/agents/results.html" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
+                <div class="text-xl mb-1">📥</div>
+                <div class="font-semibold">Incoming</div>
+                <div class="text-muted text-xs mt-0.5">Live results</div>
+            </a>
+            <a href="/agents/correlation.html" class="bg-subtle rounded-xl p-4 border border-theme text-center hover:border-red-700 transition text-sm">
+                <div class="text-xl mb-1">🔗</div>
+                <div class="font-semibold">Correlation</div>
+                <div class="text-muted text-xs mt-0.5">Multi-device</div>
             </a>
         </div>
     </section>
 
-    <!-- Evidence Summary -->
+    <!-- Verification Block -->
     <section class="mb-12">
-        <h2 class="text-lg font-semibold text-zinc-400 uppercase tracking-wider mb-4">Evidence on File</h2>
-        <div class="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
-            <table class="w-full text-sm">
-                <thead>
-                    <tr class="border-b border-zinc-800 text-zinc-500 text-xs uppercase">
-                        <th class="text-left p-4">File</th>
-                        <th class="text-left p-4">Size</th>
-                        <th class="text-left p-4">Packets</th>
-                        <th class="text-left p-4 hidden md:table-cell">Duration</th>
-                        <th class="text-left p-4 hidden md:table-cell">Primary Finding</th>
-                    </tr>
-                </thead>
-                <tbody class="text-zinc-300">
-                    <tr class="border-b border-zinc-800/50">
-                        <td class="p-4 font-mono text-xs">ppppppppppppppp.pcapng</td>
-                        <td class="p-4">12.98 MB</td>
-                        <td class="p-4">6,323</td>
-                        <td class="p-4 hidden md:table-cell">4m 25s</td>
-                        <td class="p-4 hidden md:table-cell text-red-400 text-xs">Sustained TLS bursts to xAI + local polling</td>
-                    </tr>
-                    <tr class="border-b border-zinc-800/50">
-                        <td class="p-4 font-mono text-xs">2.pcapng</td>
-                        <td class="p-4">12.69 MB</td>
-                        <td class="p-4">2,925</td>
-                        <td class="p-4 hidden md:table-cell">2m 31s</td>
-                        <td class="p-4 hidden md:table-cell text-red-400 text-xs">Cursor IDE + Mac Mini polling session</td>
-                    </tr>
-                    <tr>
-                        <td class="p-4 font-mono text-xs">1.pcapng</td>
-                        <td class="p-4">1.29 MB</td>
-                        <td class="p-4">280</td>
-                        <td class="p-4 hidden md:table-cell">14.8s</td>
-                        <td class="p-4 hidden md:table-cell text-zinc-400 text-xs">Initial session burst</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-    </section>
-
-    <!-- Verification -->
-    <section class="mb-12">
-        <div class="bg-black rounded-2xl p-5 font-mono text-xs text-green-400 overflow-x-auto leading-relaxed">
-            <span class="text-green-600">MERKLE ROOT:</span> bcb859782f311174fee3bfc0585559e389763d505a5946fa34587bf46ce73591<br>
-            <span class="text-green-600">VAULT SEAL:</span>&nbsp; 172c29fa04fe5559048edf9f021f2f2ce8441a677ff193e7e026b3f09d2baa37<br>
-            <span class="text-green-600">MODE:</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; OFFLINE ZERO-AI | NETWORK: 0 calls | AI API: 0 calls<br>
-            <span class="text-green-600">STATUS:</span>&nbsp;&nbsp;&nbsp;&nbsp; ALL EVIDENCE VERIFIED ✓
-        </div>
-    </section>
-
-    <!-- Operational Links -->
-    <section class="mb-12">
-        <h2 class="text-lg font-semibold text-zinc-400 uppercase tracking-wider mb-4">Operational</h2>
-        <div class="flex flex-wrap gap-3">
-            <a href="/agents/" class="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-sm hover:border-zinc-600 transition">Capture Agents</a>
-            <a href="/agents/results.html" class="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-sm hover:border-zinc-600 transition">Incoming Results</a>
-            <a href="/agents/correlation.html" class="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-sm hover:border-zinc-600 transition">Correlation Guide</a>
-            <a href="/agents/infrastructure.html" class="px-4 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-sm hover:border-zinc-600 transition">Infrastructure</a>
+        <div class="bg-subtle rounded-2xl p-5 border border-theme font-mono text-xs leading-relaxed overflow-x-auto" style="color: var(--text2);">
+            <span style="color:#4ade80;">CASE:</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; KHET-1 / QC-25-32157<br>
+            <span style="color:#4ade80;">MERKLE:</span>&nbsp;&nbsp;&nbsp; bcb859782f311174fee3bfc0585559e389763d505a5946fa34587bf46ce73591<br>
+            <span style="color:#4ade80;">VAULT:</span>&nbsp;&nbsp;&nbsp;&nbsp; 172c29fa04fe5559048edf9f021f2f2ce8441a677ff193e7e026b3f09d2baa37<br>
+            <span style="color:#4ade80;">MODE:</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp; OFFLINE ZERO-AI | NETWORK: 0 | AI API: 0<br>
+            <span style="color:#4ade80;">STATUS:</span>&nbsp;&nbsp;&nbsp; EVIDENCE SEALED ✓ | ANALYSIS COMPLETE ✓ | REPORT FILED ✓
         </div>
     </section>
 
     <!-- Footer -->
-    <footer class="pt-8 border-t border-zinc-800 text-center">
-        <p class="text-zinc-500 text-sm"><strong class="text-zinc-300">FireStar Forensics</strong> • StarFire Reports</p>
-        <p class="text-zinc-600 text-xs mt-1">"Light Forged in Evidence" — Tamper-Evident • Adversarially Tested • Court-Ready</p>
-        <p class="text-zinc-700 text-xs mt-3 font-mono">KHET-1 / QC-25-32157 • LATTICE TEAM • Vault Sealed</p>
+    <footer class="pt-8 border-t border-theme text-center">
+        <p class="text-secondary text-sm"><strong>FireStar Defense</strong></p>
+        <p class="text-muted text-xs mt-1">Network Forensics & Digital Evidence</p>
+        <p class="text-muted text-xs mt-1 italic">"Light Forged in Evidence"</p>
+        <p class="text-muted text-xs mt-3">Tamper-Evident • Adversarially Tested • Court-Ready</p>
+        <p class="font-mono text-xs mt-4" style="color:var(--muted);">StarFire Reports • LATTICE TEAM • Vault Sealed</p>
     </footer>
 </div>
+
+<script>
+function toggleMode() {
+    document.body.classList.toggle('dark');
+    document.body.classList.toggle('light');
+}
+</script>
 </body>
 </html>
