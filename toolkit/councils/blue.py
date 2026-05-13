@@ -28,10 +28,14 @@ class BlueCouncil:
     def analyze(self, packets_df, local_ips: set) -> List[BlueFinding]:
         """Run all blue analysis passes."""
         self.findings = []
-        self._assess_https_dominance(packets_df, local_ips)
-        self._assess_infrastructure(packets_df, local_ips)
-        self._assess_bandwidth(packets_df, local_ips)
-        self._assess_keepalives(packets_df, local_ips)
+        df = packets_df.copy()
+        df['dst_port'] = df['dst_port'].fillna(0).astype(int)
+        df['src_port'] = df['src_port'].fillna(0).astype(int)
+
+        self._assess_https_dominance(df, local_ips)
+        self._assess_infrastructure(df, local_ips)
+        self._assess_bandwidth(df, local_ips)
+        self._assess_keepalives(df, local_ips)
         return self.findings
 
     def _assess_https_dominance(self, df, local_ips):

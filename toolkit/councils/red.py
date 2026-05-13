@@ -28,40 +28,76 @@ class RedCouncil:
     def analyze(self, packets_df, local_ips: set) -> List[RedFinding]:
         """Run all red analysis passes."""
         self.findings = []
-        self._detect_beaconing(packets_df, local_ips)
-        self._detect_volume_anomaly(packets_df, local_ips)
-        self._detect_unusual_ports(packets_df, local_ips)
-        self._detect_dns_tunnel(packets_df, local_ips)
+        # Normalize port columns to handle NaN (float64 from pyshark)
+        df = packets_df.copy()
+        df['dst_port'] = df['dst_port'].fillna(0).astype(int)
+        df['src_port'] = df['src_port'].fillna(0).astype(int)
+
+        self._detect_beaconing(df, local_ips)
+        self._detect_volume_anomaly(df, local_ips)
+        self._detect_unusual_ports(df, local_ips)
+        self._detect_dns_tunnel(df, local_ips)
         return self.findings
 
     def _detect_beaconing(self, df, local_ips):
-        """Regular interval outbound = possible C2 callback."""
-        outbound = df[df['src_ip'].isin(local_ips) & ~df['dst_ip'].isin(local_ips)]
+        """Regular interval traffic = possible C2 callback or automated polling."""
+        outbound = df[df['src_ip'].isin(local_ips)]
         if len(outbound) < 10:
             return
 
-        for dst_ip in outbound['dst_ip'].unique():
-            subset = outbound[outbound['dst_ip'] == dst_ip].sort_values('time')
-            if len(subset) < 5:
-                continue
-            intervals = subset['time'].diff().dt.total_seconds().dropna()
-            intervals = intervals[intervals > 0.5]
-            if len(intervals) < 4:
+        # Detect beaconing per (dst_ip, dst_port) pair — connection-level, not packet-level
+        # Use SYN packets or first-packet-per-flow to measure connection initiation intervals
+        for (dst_ip, dst_port), group in outbound.groupby(['dst_ip', 'dst_port']):
+            if len(group) < 5 or dst_port == 0:
                 continue
 
-            mean = intervals.mean()
-            std = intervals.std()
-            if mean > 0 and std < mean * 0.35 and mean < 600:
+            sorted_times = group['time'].sort_values()
+            # For flow-level: use gaps > 1s to identify distinct connection starts
+            intervals = sorted_times.diff().dt.total_seconds().dropna()
+            flow_intervals = intervals[intervals > 1.0]
+
+            if len(flow_intervals) < 4:
+                continue
+
+            mean = flow_intervals.mean()
+            std = flow_intervals.std()
+
+            if mean > 2 and std < mean * 0.4 and mean < 600:
                 regularity = 1 - (std / mean)
                 self.findings.append(RedFinding(
-                    id=f"RED-BEACON-{dst_ip}",
+                    id=f"RED-BEACON-{dst_ip}-{dst_port}",
                     severity='HIGH',
                     category='beaconing',
-                    target=dst_ip,
-                    hypothesis=f"Regular beaconing to {dst_ip} (interval {mean:.1f}s, sigma {std:.1f}s)",
-                    evidence=f"{len(subset)} packets, regularity={regularity:.2f}, total {subset['length'].sum()/1024:.1f}KB",
+                    target=f"{dst_ip}:{dst_port}",
+                    hypothesis=f"Regular beaconing to {dst_ip}:{dst_port} (interval {mean:.1f}s, sigma {std:.1f}s)",
+                    evidence=f"{len(group)} packets in {len(flow_intervals)} flows, regularity={regularity:.2f}",
                     confidence=min(0.9, regularity)
                 ))
+
+        # Also check per-destination (ignoring port) with larger gap threshold
+        for dst_ip in outbound['dst_ip'].unique():
+            subset = outbound[outbound['dst_ip'] == dst_ip].sort_values('time')
+            if len(subset) < 20:
+                continue
+            intervals = subset['time'].diff().dt.total_seconds().dropna()
+            flow_gaps = intervals[intervals > 3.0]
+            if len(flow_gaps) < 4:
+                continue
+
+            mean = flow_gaps.mean()
+            std = flow_gaps.std()
+            if mean > 3 and std < mean * 0.3 and mean < 600:
+                regularity = 1 - (std / mean)
+                if not any(f.target.startswith(dst_ip) for f in self.findings):
+                    self.findings.append(RedFinding(
+                        id=f"RED-BEACON-AGG-{dst_ip}",
+                        severity='HIGH',
+                        category='beaconing',
+                        target=dst_ip,
+                        hypothesis=f"Aggregate beaconing to {dst_ip} (interval {mean:.1f}s, sigma {std:.1f}s)",
+                        evidence=f"{len(subset)} total packets, {len(flow_gaps)} flow gaps measured",
+                        confidence=min(0.85, regularity)
+                    ))
 
     def _detect_volume_anomaly(self, df, local_ips):
         """Single destination receiving disproportionate outbound traffic."""

@@ -45,6 +45,8 @@ Examples:
     parser.add_argument("--redact-map", help="Path to custom redaction JSON map")
     parser.add_argument("--quick", action="store_true",
                        help="Quick scan (skip deep analysis)")
+    parser.add_argument("--trace", action="store_true",
+                       help="Enable crystalline trace: log every file touch, handoff, and Merkle inclusion")
 
     args = parser.parse_args()
 
@@ -56,9 +58,13 @@ Examples:
     output_dir.mkdir(parents=True, exist_ok=True)
 
     mode = "OFFLINE ZERO-AI" if not args.local_llm else "OFFLINE + LOCAL LLM"
+    trace = args.trace
+
     print(f"StarFire Forensic Analyzer — KHET-1")
     print(f"Mode: {mode}")
     print(f"Network: BLOCKED")
+    if trace:
+        print(f"Trace: ENABLED (crystalline data flow audit)")
     print()
 
     # Collect pcap files
@@ -114,7 +120,15 @@ Examples:
     for f in pcap_files:
         item = sealer.ingest(str(f))
         print(f"  SEALED: {item.filename} | {item.sha256[:32]}...")
+        if trace:
+            print(f"    [TRACE] File: {item.filepath}")
+            print(f"    [TRACE] Size: {item.size_bytes:,} bytes")
+            print(f"    [TRACE] SHA-256: {item.sha256}")
+            print(f"    [TRACE] MD5: {item.md5}")
+            print(f"    [TRACE] Merkle leaf added: evidence:{item.filename}")
     sealer.seal()
+    if trace:
+        print(f"  [TRACE] Evidence Merkle root: {sealer.merkle.get_root()}")
     print()
 
     # Phase 1: Parse
@@ -122,18 +136,30 @@ Examples:
     pcap_parser = PcapParser()
     df = pcap_parser.parse_multiple([str(f) for f in pcap_files])
     print(f"  {len(df)} packets parsed")
+    if trace:
+        print(f"  [TRACE] DataFrame shape: {df.shape}")
+        print(f"  [TRACE] Columns: {list(df.columns)}")
+        print(f"  [TRACE] Time range: {df['time'].min()} → {df['time'].max()}")
+        print(f"  [TRACE] Unique src IPs: {df['src_ip'].nunique()}")
+        print(f"  [TRACE] Unique dst IPs: {df['dst_ip'].nunique()}")
+        print(f"  [TRACE] Handoff → councils (DataFrame with {len(df)} rows)")
     print()
 
     if len(df) == 0:
         print("No packets found.")
         sys.exit(1)
 
-    # Detect local IPs
+    # Detect local IPs — use only the TOP source (the machine that captured)
+    # Including multiple top sources causes LAN peers to be excluded from analysis
     local_ips = set()
     local_ips.add('127.0.0.1')
-    top_src = df['src_ip'].value_counts().head(3).index.tolist()
-    local_ips.update([ip for ip in top_src if ip])
+    top_src = df['src_ip'].value_counts()
+    if len(top_src) > 0:
+        primary_src = top_src.index[0]
+        local_ips.add(primary_src)
     local_ips.discard(None)
+    print(f"  Local IP (source): {local_ips - {'127.0.0.1'}}")
+    print()
 
     # Phase 2: Councils
     if not args.quick:
@@ -141,17 +167,27 @@ Examples:
         red = RedCouncil()
         red_findings = red.analyze(df, local_ips)
         print(f"  {len(red_findings)} findings")
+        if trace:
+            for f in red_findings:
+                print(f"  [TRACE] RED {f.id}: {f.category} → {f.target} (conf={f.confidence:.2f})")
 
         print("Running Blue Council (innocence)...")
         blue = BlueCouncil()
         blue_findings = blue.analyze(df, local_ips)
         print(f"  {len(blue_findings)} findings")
+        if trace:
+            for f in blue_findings:
+                print(f"  [TRACE] BLUE {f.id}: {f.category} → {f.target} (conf={f.confidence:.2f})")
 
         print("Final Maker resolving...")
         maker = FinalMaker()
         verdicts, debate_log = maker.resolve(red_findings, blue_findings)
         alignment = maker.get_alignment()
         print(f"  {len(debate_log)} debates | Alignment: {alignment:.0%}")
+        if trace:
+            for d in debate_log:
+                print(f"  [TRACE] DEBATE: {d['red_id']} vs {d['blue_id']} → {d['resolution']}")
+                print(f"           Red conf={d['red_confidence']:.2f} | Blue conf={d['blue_confidence']:.2f}")
         print()
     else:
         red_findings = []
