@@ -183,6 +183,15 @@ impl ToolNavigator {
         self.matches.len()
     }
 
+    pub fn matches(&self) -> &[Match] {
+        self.matches.as_slice()
+    }
+
+    #[must_use]
+    pub fn tool_at_idx(&self, idx: usize) -> Option<&Tool> {
+        self.tools.get(idx)
+    }
+
     pub fn list_state_offset(&self) -> usize {
         self.list_state.offset()
     }
