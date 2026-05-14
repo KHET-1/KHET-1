@@ -9,6 +9,7 @@
 
 pub mod agent;
 pub mod app;
+pub mod helper_mode;
 pub mod journal;
 pub mod manifest;
 pub mod navigator;

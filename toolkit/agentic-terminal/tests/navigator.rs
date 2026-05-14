@@ -5,8 +5,8 @@ use agentic_terminal::types::Tool;
 #[test]
 fn empty_query_lists_all_tools_and_selects_first() {
     let nav = ToolNavigator::new(default_tools());
-    assert_eq!(nav.filtered_len(), 4);
-    assert_eq!(nav.selected_tool().unwrap().name, "ripgrep");
+    assert_eq!(nav.filtered_len(), 26);
+    assert_eq!(nav.selected_tool().unwrap().name, "nix");
 }
 
 #[test]
@@ -18,6 +18,15 @@ fn exact_prefix_puts_match_first() {
 
     nav.set_query("fd");
     assert_eq!(nav.selected_tool().unwrap().name, "fd");
+
+    nav.set_query("nvme");
+    assert_eq!(nav.selected_tool().unwrap().name, "nvme");
+
+    nav.set_query("ping");
+    assert_eq!(nav.selected_tool().unwrap().name, "ping");
+
+    nav.set_query("nmcli");
+    assert_eq!(nav.selected_tool().unwrap().name, "nmcli");
 }
 
 #[test]
@@ -34,7 +43,7 @@ fn next_previous_wraparound() {
     nav.set_query("");
     nav.list_state.select(Some(0));
     nav.previous();
-    assert_eq!(nav.list_state.selected(), Some(3));
+    assert_eq!(nav.list_state.selected(), Some(25));
     nav.next();
     assert_eq!(nav.list_state.selected(), Some(0));
 }
@@ -47,9 +56,9 @@ fn page_up_down_respect_bounds() {
     nav.page_up(100);
     assert_eq!(nav.list_state.selected(), Some(0));
 
-    nav.list_state.select(Some(3));
+    nav.list_state.select(Some(25));
     nav.page_down(100);
-    assert_eq!(nav.list_state.selected(), Some(3));
+    assert_eq!(nav.list_state.selected(), Some(25));
 }
 
 #[test]

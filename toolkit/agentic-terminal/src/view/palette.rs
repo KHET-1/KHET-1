@@ -29,7 +29,16 @@ impl CommandPaletteView {
             self.input.clear();
             return ViewResult::Pop;
         }
+
+        // Helper mode: disable agent command dispatch
+        if ctx.shared.helper_mode.helper_only {
+            ctx.shared.push_message("Helper mode: agent commands disabled");
+            self.input.clear();
+            return ViewResult::Pop;
+        }
+
         if let Ok(()) = ctx.shared.background.send_line(trimmed.to_string()) {
+            ctx.shared.session_state.add_recent(trimmed.to_string());
             ctx.shared.push_message("Agent command submitted");
             self.input.clear();
             ViewResult::Pop
