@@ -27,7 +27,9 @@ impl AgentRegistry {
                 AgentOutcome::Message(format!("help: unknown topic {args:?}"))
             }
         });
-        commands.insert("echo".into(), |args| AgentOutcome::Message(args.to_string()));
+        commands.insert("echo".into(), |args| {
+            AgentOutcome::Message(args.to_string())
+        });
         Self { commands }
     }
 

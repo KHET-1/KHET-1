@@ -19,8 +19,8 @@ use crate::agent_harness::{AgentOutcome, AgentRegistry};
 use crate::events::{AppEvent, EventLog};
 use crate::model::{AppLayer, InputMode, ToolId};
 use crate::tools::builtin_tools;
-use crate::worker::{spawn_filter_worker, FilterJob, FilterResult};
 use crate::ui;
+use crate::worker::{spawn_filter_worker, FilterJob, FilterResult};
 
 const FILTER_DEBOUNCE: Duration = Duration::from_millis(45);
 const RESIZE_DEBOUNCE: Duration = Duration::from_millis(55);
@@ -53,14 +53,20 @@ pub fn run() -> io::Result<()> {
     res
 }
 
-fn app_loop(terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>, app: &mut App) -> io::Result<()> {
+fn app_loop(
+    terminal: &mut Terminal<CrosstermBackend<std::io::Stdout>>,
+    app: &mut App,
+) -> io::Result<()> {
     let tick = Duration::from_millis(32);
 
     while !app.should_quit {
         // Apply debounced resize
         if let Some((w, h)) = app.resize_pending {
             if app.last_resize.elapsed() >= RESIZE_DEBOUNCE {
-                app.terminal_size = ratatui::layout::Size { width: w, height: h };
+                app.terminal_size = ratatui::layout::Size {
+                    width: w,
+                    height: h,
+                };
                 terminal.resize(Rect::new(0, 0, w, h))?;
                 app.resize_pending = None;
             }
@@ -219,8 +225,7 @@ impl App {
         };
 
         if self.worker_tx.try_send(job).is_err() {
-            self.event_log
-                .push(AppEvent::FilterDispatchBackpressured);
+            self.event_log.push(AppEvent::FilterDispatchBackpressured);
         }
     }
 
@@ -252,7 +257,8 @@ impl App {
 
         let new_id = self.filtered_ids[pos];
         if self.selected_id != Some(new_id) {
-            self.event_log.push(AppEvent::SelectionChanged(Some(new_id)));
+            self.event_log
+                .push(AppEvent::SelectionChanged(Some(new_id)));
         }
         self.selected_id = Some(new_id);
         self.list_state.select(Some(pos));
@@ -294,13 +300,18 @@ impl App {
             KeyCode::Tab => {
                 self.set_mode(InputMode::Agent);
             }
-            KeyCode::Esc => {
-                if !self.query.is_empty() {
-                    self.query.clear();
-                    self.event_log.push(AppEvent::QueryChanged(String::new()));
-                    self.needs_filter_refresh = true;
-                    self.last_input_change = Instant::now();
-                }
+            KeyCode::Esc if !self.query.is_empty() => {
+                self.query.clear();
+                self.event_log.push(AppEvent::QueryChanged(String::new()));
+                self.needs_filter_refresh = true;
+                self.last_input_change = Instant::now();
+            }
+            KeyCode::Backspace if !self.query.is_empty() => {
+                self.query.pop();
+                self.event_log
+                    .push(AppEvent::QueryChanged(self.query.clone()));
+                self.needs_filter_refresh = true;
+                self.last_input_change = Instant::now();
             }
             KeyCode::Down => self.move_selection(1),
             KeyCode::Up => self.move_selection(-1),
@@ -309,8 +320,10 @@ impl App {
             KeyCode::Enter => {
                 if let Some(id) = self.selected_id {
                     if let Some(t) = self.tools.iter().find(|t| t.id == id) {
-                        self.last_agent_message =
-                            Some(format!("picked {} (exec wiring intentionally absent)", t.name));
+                        self.last_agent_message = Some(format!(
+                            "picked {} (exec wiring intentionally absent)",
+                            t.name
+                        ));
                     }
                 }
             }
@@ -320,14 +333,6 @@ impl App {
                     .push(AppEvent::QueryChanged(self.query.clone()));
                 self.needs_filter_refresh = true;
                 self.last_input_change = Instant::now();
-            }
-            KeyCode::Backspace => {
-                if self.query.pop().is_some() {
-                    self.event_log
-                        .push(AppEvent::QueryChanged(self.query.clone()));
-                    self.needs_filter_refresh = true;
-                    self.last_input_change = Instant::now();
-                }
             }
             _ => {}
         }
@@ -397,16 +402,16 @@ impl App {
             MouseEventKind::ScrollUp => {
                 *self.list_state.offset_mut() = self.list_state.offset().saturating_sub(3);
             }
-            MouseEventKind::Down(MouseButton::Left) => {
-                if layout.list.contains(Position::new(m.column, m.row)) {
-                    let row = m.row.saturating_sub(layout.list.y) as usize;
-                    let idx = self.list_state.offset().saturating_add(row);
-                    if idx < self.filtered_ids.len() {
-                        self.list_state.select(Some(idx));
-                        if let Some(id) = self.filtered_ids.get(idx) {
-                            self.selected_id = Some(*id);
-                            self.event_log.push(AppEvent::SelectionChanged(Some(*id)));
-                        }
+            MouseEventKind::Down(MouseButton::Left)
+                if layout.list.contains(Position::new(m.column, m.row)) =>
+            {
+                let row = m.row.saturating_sub(layout.list.y) as usize;
+                let idx = self.list_state.offset().saturating_add(row);
+                if idx < self.filtered_ids.len() {
+                    self.list_state.select(Some(idx));
+                    if let Some(id) = self.filtered_ids.get(idx) {
+                        self.selected_id = Some(*id);
+                        self.event_log.push(AppEvent::SelectionChanged(Some(*id)));
                     }
                 }
             }
@@ -416,10 +421,7 @@ impl App {
 }
 
 fn visible_list_height(app: &App) -> usize {
-    app.terminal_size
-        .height
-        .saturating_sub(10)
-        .max(3) as usize
+    app.terminal_size.height.saturating_sub(10).max(3) as usize
 }
 
 fn layer_name(l: AppLayer) -> &'static str {

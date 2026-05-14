@@ -9,6 +9,7 @@ use ratatui::Frame;
 use crate::app::LayoutCache;
 use crate::model::{InputMode, Tool, ToolId};
 
+#[allow(clippy::too_many_arguments)]
 pub fn draw(
     frame: &mut Frame<'_>,
     tools: &[Tool],
@@ -34,12 +35,10 @@ pub fn draw(
         InputMode::Search => "[Search] type to filter — Tab: agent  Esc: clear query  q: quit",
         InputMode::Agent => "[Agent] /help — Tab: search  Enter: submit  Esc: back",
     };
-    let header = Paragraph::new(Line::from(vec![
-        Span::styled(
-            format!(" agentos — {mode_line} "),
-            Style::default().add_modifier(Modifier::BOLD),
-        ),
-    ]))
+    let header = Paragraph::new(Line::from(vec![Span::styled(
+        format!(" agentos — {mode_line} "),
+        Style::default().add_modifier(Modifier::BOLD),
+    )]))
     .block(Block::default().borders(Borders::BOTTOM).title(" harness "));
     frame.render_widget(header, chunks[0]);
 

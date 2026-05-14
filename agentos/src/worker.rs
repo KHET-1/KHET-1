@@ -90,10 +90,7 @@ mod tests {
     fn rank_empty_query_returns_stable_order() {
         let mut m = Matcher::new(nucleo_matcher::Config::DEFAULT);
         let mut buf = Vec::new();
-        let items = vec![
-            (1u32, "git".into()),
-            (2u32, "cargo".into()),
-        ];
+        let items = vec![(1u32, "git".into()), (2u32, "cargo".into())];
         let out = rank("", &items, &mut m, &mut buf);
         assert_eq!(out, vec![1, 2]);
     }

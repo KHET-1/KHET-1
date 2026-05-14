@@ -1,7 +1,10 @@
 [package]
 name = "agentos"
 version = "0.1.0"
-edition = "2021"
+edition.workspace = true
+
+[lints.rust]
+unsafe_code = "forbid"
 
 [dependencies]
 crossbeam-channel = "0.5.15"

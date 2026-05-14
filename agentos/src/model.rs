@@ -28,4 +28,3 @@ pub enum AppLayer {
     /// Agent input line focused (still shows navigator underneath).
     AgentPrompt,
 }
-

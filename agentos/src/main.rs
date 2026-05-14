@@ -1,6 +1,6 @@
 //! Agentic Terminal OS — core navigator + agent harness prototype.
 //!
-//! Run: `cargo run` from the `agentos/` directory.
+//! Run: `cargo run -p agentos` from the repository root (or `cargo run` inside `agentos/`).
 
 mod agent_harness;
 mod app;
