@@ -123,7 +123,7 @@ class FinalMaker:
                 break
 
         code_blob = json.dumps(files, sort_keys=True)
-        return BuildResult(
+        result = BuildResult(
             task=task,
             files=files,
             objections_raised=len(all_objs),
@@ -133,3 +133,49 @@ class FinalMaker:
             seal=hashlib.sha256(code_blob.encode()).hexdigest(),
             timestamp=datetime.now(timezone.utc).isoformat()
         )
+        result._objections = all_objs
+        return result
+
+
+def report(result: BuildResult) -> str:
+    """One-page build report. Compare across runs."""
+    total = result.objections_raised
+    fixed = result.objections_fixed
+    score = max(0, 100 - (total * 5) + (fixed * 3))  # penalize issues, reward fixes
+    grade = 'A' if score >= 90 else 'B' if score >= 75 else 'C' if score >= 60 else 'D' if score >= 40 else 'F'
+
+    lines = [
+        f'{"="*50}',
+        f' SWARM BUILD REPORT',
+        f'{"="*50}',
+        f' Task:       {result.task}',
+        f' Files:      {len(result.files)} ({", ".join(result.files.keys())})',
+        f' Rounds:     {result.rounds}/3',
+        f' Seal:       {result.seal[:24]}...',
+        f' Timestamp:  {result.timestamp}',
+        f'{"─"*50}',
+        f' SCORE:      {score}/100  [{grade}]',
+        f'{"─"*50}',
+        f' Objections: {total} raised',
+        f'   Fixed:    {fixed}',
+        f'   Rejected: {result.objections_rejected}',
+        f'   Open:     {total - fixed - result.objections_rejected}',
+    ]
+
+    if hasattr(result, '_objections') and result._objections:
+        lines.append(f'{"─"*50}')
+        lines.append(f' FINDINGS:')
+        by_sev = {}
+        for o in result._objections:
+            by_sev.setdefault(o.severity, []).append(o)
+        for sev in ('CRITICAL', 'HIGH', 'MEDIUM', 'LOW'):
+            if sev in by_sev:
+                lines.append(f'   [{sev}] x{len(by_sev[sev])}')
+                for o in by_sev[sev]:
+                    status = 'FIXED' if o.valid else 'REJECTED' if o.valid is False else 'OPEN'
+                    lines.append(f'     {o.id} {o.category}: {o.description[:45]} [{status}]')
+
+    lines.append(f'{"─"*50}')
+    lines.append(f' VERDICT:    {"SHIP" if grade in ("A","B") else "FIX BEFORE SHIP" if grade == "C" else "DO NOT SHIP"}')
+    lines.append(f'{"="*50}')
+    return '\n'.join(lines)
