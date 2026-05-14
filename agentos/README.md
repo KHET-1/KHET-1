@@ -8,11 +8,15 @@ This crate is intentionally small and shippable: it runs today, has a clean modu
 
 - **ratatui** UI: list + preview, mode chrome, resize-aware layout
 - **nucleo-matcher** fuzzy ranking on a **background worker thread** (crossbeam channels), with **epoch-based** stale-result dropping so fast typing does not flash old rankings
-- **Dual mode**: Search (filter tools) vs Agent (`/help`, `/echo`, …) with Tab / Esc semantics
+- **Graceful worker shutdown**: dropping the job sender ends the worker loop; `run()` **joins** the filter thread before restoring the terminal
+- **Panic hook** (`panic_hook.rs`): disables raw mode, leaves alternate screen, disables mouse capture, shows cursor — then chains the previous hook
+- **Dual mode**: Search (filter tools) vs Agent (`/help`, `/echo`, `/quit`) with Tab / Esc semantics
 - **Mouse**: wheel scroll + click-to-select inside the list (keyboard parity for navigation)
 - **Debouncing**: filter requests and terminal resize
-- **Append-only in-memory event log** (`AppEvent`) as a stub for later hashing / export / Merkle anchoring
+- **Append-only in-memory event log** (`AppEvent`) plus a **`Journal` trait** implemented by `EventLog` (swap-in point for disk / Merkle / hash-chained logs)
 - **Stable `ToolId`** through filter changes (selection reconciles by id, not raw index)
+- **`Agent` trait + `AgentRegistry`**: built-ins are structs (`HelpAgent`, `EchoAgent`, `QuitAgent`) with `id()` and `command()` — add a new agent by registering one implementation
+- **Boundary stubs** (`boundary.rs`): `ContentHash`, `Signature`, `AgentId`, `ToolManifest`, `VerificationReport`, `verify_tool_stub`, **`StateStore` trait** + `MemoryStateStore` (used on tool pick + `get` round-trip in UI copy)
 - **`unsafe_code = "forbid"`** via package lints in `agentos/Cargo.toml`
 
 ## Repository layout
@@ -25,14 +29,17 @@ Cargo.lock
 rust-toolchain.toml     # stable + rustfmt + clippy (CI aligns with this)
 agentos/
   Cargo.toml
+  README.md
   src/
-    main.rs             # thin entry → app::run
-    app.rs              # event loop, debounce, input routing
+    main.rs             # panic hook + entry → app::run
+    app.rs              # event loop, debounce, input routing, Journal logging
     ui.rs               # layout + render + LayoutCache for hit-testing
     model.rs            # Tool, ToolId, InputMode, AppLayer
-    events.rs           # AppEvent + EventLog ring buffer
-    worker.rs             # filter worker + FilterJob / FilterResult
-    agent_harness.rs    # slash-command registry (replace with Agent trait next)
+    events.rs           # AppEvent, EventLog, trait Journal
+    boundary.rs         # trust/store types + StateStore + verify stubs
+    panic_hook.rs       # terminal restore on panic
+    worker.rs             # FilterWorker + FilterJob / FilterResult + join
+    agent_harness.rs    # trait Agent + AgentRegistry + built-ins
     tools.rs            # built-in demo corpus
 ```
 
@@ -72,29 +79,27 @@ flowchart LR
   RCH --> ST
 ```
 
-Design intent: **the TUI thread never blocks on matching**. Execution of real tools is still deliberately not wired (Enter only records a pick); subprocess and network I/O belong behind a worker/runtime boundary in a later iteration.
+Design intent: **the TUI thread never blocks on matching**. Execution of real tools is still deliberately not wired (Enter records pick + manifest/verify stub + `StateStore`); subprocess and network I/O belong behind a worker/runtime boundary in a later iteration.
 
-## Why this is a good base for “next”
+## Review coverage (this crate vs roadmap)
 
-The codebase already separates concerns that usually entangle in a first ratatui prototype:
-
-| Layer | Today | Natural next step |
-|-------|--------|-------------------|
-| Input routing | `InputMode` + `AppLayer` in `app.rs` | **View stack** (`trait View`) so overlays and multiple agents do not grow another enum dimension |
-| Agents | `HashMap` of closures | **`trait Agent { fn id … }` + `AgentRegistry`**, structured `AgentOutcome`, confirmation / capability metadata |
-| Worker | `std::thread` + crossbeam | **Tokio `current_thread` runtime** (or dedicated async thread) for streaming I/O + **graceful shutdown** + **panic hook** restoring the terminal |
-| Fuzzy | `nucleo-matcher` + cloned haystack per job | **`nucleo::Nucleo`** snapshot API + **tests** to stop per-keystroke cloning at scale |
-| Trust / audit | `EventLog` in memory | **Boundary types** (`AgentId`, `ToolManifest`, `Hash`, `Signature`, `VerificationReport`) + **`trait Journal`**, **`trait StateStore`** (local dir → SQLite → Nextcloud sync as implementations) |
-
-None of that requires throwing away the current loop; it is mostly **interface extraction** and **channel protocol** upgrades.
+| Review theme | Status in-tree |
+|--------------|----------------|
+| Panic hook + terminal restore | Done (`panic_hook.rs`) |
+| Graceful worker shutdown (join) | Done (`FilterWorker::shutdown`) |
+| `Journal` trait (audit boundary) | Done (`events.rs`) |
+| `StateStore` + boundary types | Done (`boundary.rs`, wired on pick) |
+| `Agent` trait + registry | Done (`agent_harness.rs`) |
+| View / focus stack (`trait View`) | Not done — next structural refactor |
+| Tokio + split control/work channels | Not done — still `std::thread` + crossbeam |
+| `nucleo::Nucleo` incremental matcher | Not done — still `nucleo-matcher` per job |
 
 ## Roadmap (suggested order)
 
-1. **View / focus stack** — kill ad-hoc mode switches as the sole abstraction; one dispatcher over a stack of views.
-2. **`Agent` trait + registry** — one insertion point for new agents; identity and versioning ready for manifests.
-3. **Tokio worker + split control/data channels + shutdown + panic hook** — production-grade terminal hygiene and no head-of-line blocking on long jobs.
-4. **Boundary types + `Journal` / `StateStore` traits** — stub impls now, real crypto and sync later.
-5. **`nucleo` high-level matcher** — incremental updates, unit tests around ranking and staleness.
+1. **View / focus stack** — one dispatcher over a stack of `View`s; shrink `App` input routing.
+2. **Tokio worker** — `current_thread` runtime (or dedicated async thread), split control vs data channels, cancellation tokens.
+3. **`nucleo::Nucleo`** — snapshot/incremental fuzzy pipeline; tests for ranking + staleness.
+4. **Real hashing / signing** — replace `ContentHash::PLACEHOLDER`, populate `Signature`, seal `ToolManifest`.
 
 ## License
 

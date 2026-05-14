@@ -16,11 +16,12 @@ use ratatui::widgets::ListState;
 use ratatui::Terminal;
 
 use crate::agent_harness::{AgentOutcome, AgentRegistry};
-use crate::events::{AppEvent, EventLog};
+use crate::boundary::{tool_manifest_stub, verify_tool_stub, MemoryStateStore, StateStore};
+use crate::events::{AppEvent, EventLog, Journal};
 use crate::model::{AppLayer, InputMode, ToolId};
 use crate::tools::builtin_tools;
 use crate::ui;
-use crate::worker::{spawn_filter_worker, FilterJob, FilterResult};
+use crate::worker::{spawn_filter_worker, FilterJob, FilterResult, FilterWorker};
 
 const FILTER_DEBOUNCE: Duration = Duration::from_millis(45);
 const RESIZE_DEBOUNCE: Duration = Duration::from_millis(55);
@@ -41,6 +42,10 @@ pub fn run() -> io::Result<()> {
     app.terminal_size = terminal.size()?;
 
     let res = app_loop(&mut terminal, &mut app);
+
+    if let Some(w) = app.filter_worker.take() {
+        let _ = w.shutdown();
+    }
 
     disable_raw_mode()?;
     execute!(
@@ -78,7 +83,13 @@ fn app_loop(
         }
 
         // Drain worker results (non-blocking)
-        while let Ok(result) = app.worker_rx.try_recv() {
+        while let Ok(result) = app
+            .filter_worker
+            .as_ref()
+            .expect("filter worker")
+            .result_rx
+            .try_recv()
+        {
             app.on_filter_result(result);
         }
 
@@ -125,8 +136,8 @@ pub struct App {
     pub agent_buffer: String,
     pub mode: InputMode,
     pub layer: AppLayer,
-    pub worker_tx: crossbeam_channel::Sender<FilterJob>,
-    pub worker_rx: crossbeam_channel::Receiver<FilterResult>,
+    pub filter_worker: Option<FilterWorker>,
+    pub state_store: MemoryStateStore,
     /// Monotonic id for the last filter job sent to the worker.
     pub latest_sent_epoch: u64,
     pub needs_filter_refresh: bool,
@@ -142,10 +153,15 @@ pub struct App {
 }
 
 impl App {
+    #[inline]
+    fn log_event(&mut self, event: AppEvent) {
+        Journal::append(&mut self.event_log, event);
+    }
+
     pub fn new() -> Self {
         let tools = builtin_tools();
         let match_lines: Vec<_> = tools.iter().map(|t| (t.id, t.fuzzy_line())).collect();
-        let worker = spawn_filter_worker();
+        let filter_worker = spawn_filter_worker();
         let initial_ids: Vec<_> = tools.iter().map(|t| t.id).collect();
 
         let mut list_state = ListState::default();
@@ -163,8 +179,8 @@ impl App {
             agent_buffer: String::new(),
             mode: InputMode::Search,
             layer: AppLayer::Navigator,
-            worker_tx: worker.tx,
-            worker_rx: worker.rx,
+            filter_worker: Some(filter_worker),
+            state_store: MemoryStateStore::new(),
             latest_sent_epoch: 0,
             needs_filter_refresh: false,
             last_input_change: Instant::now(),
@@ -177,7 +193,7 @@ impl App {
             event_log: EventLog::new(512),
             agents: AgentRegistry::with_builtin_agents(),
             last_agent_message: Some(
-                "foundation build — worker filter + event log + stable ids".into(),
+                "Tab: agent mode — /help, /quit — Enter on tool: manifest stub + verify".into(),
             ),
             should_quit: false,
             layout: None,
@@ -192,14 +208,14 @@ impl App {
         if new_layer != self.layer {
             let from = layer_name(self.layer);
             let to = layer_name(new_layer);
-            self.event_log.push(AppEvent::LayerChanged { from, to });
+            self.log_event(AppEvent::LayerChanged { from, to });
             self.layer = new_layer;
         }
     }
 
     fn set_mode(&mut self, to: InputMode) {
         if self.mode != to {
-            self.event_log.push(AppEvent::ModeChanged {
+            self.log_event(AppEvent::ModeChanged {
                 from: self.mode,
                 to,
             });
@@ -224,14 +240,21 @@ impl App {
             items: self.match_lines.clone(),
         };
 
-        if self.worker_tx.try_send(job).is_err() {
-            self.event_log.push(AppEvent::FilterDispatchBackpressured);
+        if self
+            .filter_worker
+            .as_ref()
+            .expect("filter worker")
+            .job_tx()
+            .try_send(job)
+            .is_err()
+        {
+            self.log_event(AppEvent::FilterDispatchBackpressured);
         }
     }
 
     fn on_filter_result(&mut self, result: FilterResult) {
         if result.epoch != self.latest_sent_epoch {
-            self.event_log.push(AppEvent::StaleWorkerResultDropped {
+            self.log_event(AppEvent::StaleWorkerResultDropped {
                 epoch: result.epoch,
                 current_epoch: self.latest_sent_epoch,
             });
@@ -246,7 +269,7 @@ impl App {
         if self.filtered_ids.is_empty() {
             self.selected_id = None;
             self.list_state.select(None);
-            self.event_log.push(AppEvent::SelectionChanged(None));
+            self.log_event(AppEvent::SelectionChanged(None));
             return;
         }
 
@@ -257,8 +280,7 @@ impl App {
 
         let new_id = self.filtered_ids[pos];
         if self.selected_id != Some(new_id) {
-            self.event_log
-                .push(AppEvent::SelectionChanged(Some(new_id)));
+            self.log_event(AppEvent::SelectionChanged(Some(new_id)));
         }
         self.selected_id = Some(new_id);
         self.list_state.select(Some(pos));
@@ -273,12 +295,12 @@ impl App {
     fn on_key(&mut self, key: KeyEvent) -> io::Result<()> {
         match key.code {
             KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.event_log.push(AppEvent::Quit);
+                self.log_event(AppEvent::Quit);
                 self.should_quit = true;
                 return Ok(());
             }
             KeyCode::Char('q') if self.mode == InputMode::Search && self.query.is_empty() => {
-                self.event_log.push(AppEvent::Quit);
+                self.log_event(AppEvent::Quit);
                 self.should_quit = true;
                 return Ok(());
             }
@@ -302,14 +324,13 @@ impl App {
             }
             KeyCode::Esc if !self.query.is_empty() => {
                 self.query.clear();
-                self.event_log.push(AppEvent::QueryChanged(String::new()));
+                self.log_event(AppEvent::QueryChanged(String::new()));
                 self.needs_filter_refresh = true;
                 self.last_input_change = Instant::now();
             }
             KeyCode::Backspace if !self.query.is_empty() => {
                 self.query.pop();
-                self.event_log
-                    .push(AppEvent::QueryChanged(self.query.clone()));
+                self.log_event(AppEvent::QueryChanged(self.query.clone()));
                 self.needs_filter_refresh = true;
                 self.last_input_change = Instant::now();
             }
@@ -320,17 +341,25 @@ impl App {
             KeyCode::Enter => {
                 if let Some(id) = self.selected_id {
                     if let Some(t) = self.tools.iter().find(|t| t.id == id) {
+                        let manifest = tool_manifest_stub(t);
+                        let report = verify_tool_stub(&manifest);
+                        let summary = format!("{}:{report:?}", t.name);
+                        let _ = self.state_store.put("last_pick", summary.as_bytes());
+                        let stored = self
+                            .state_store
+                            .get("last_pick")
+                            .map(|b| String::from_utf8_lossy(&b).into_owned())
+                            .unwrap_or_default();
                         self.last_agent_message = Some(format!(
-                            "picked {} (exec wiring intentionally absent)",
-                            t.name
+                            "picked {} [{}] — verify {report:?} | store={stored} (exec not wired)",
+                            t.name, manifest.name
                         ));
                     }
                 }
             }
             KeyCode::Char(c) => {
                 self.query.push(c);
-                self.event_log
-                    .push(AppEvent::QueryChanged(self.query.clone()));
+                self.log_event(AppEvent::QueryChanged(self.query.clone()));
                 self.needs_filter_refresh = true;
                 self.last_input_change = Instant::now();
             }
@@ -349,13 +378,18 @@ impl App {
             }
             KeyCode::Enter => {
                 let line = std::mem::take(&mut self.agent_buffer);
-                self.event_log
-                    .push(AppEvent::AgentLineSubmitted(line.clone()));
+                self.log_event(AppEvent::AgentLineSubmitted(line.clone()));
                 let out = self.agents.handle_line(&line);
-                self.last_agent_message = match out {
-                    AgentOutcome::Message(s) => Some(s),
-                    AgentOutcome::Noop => self.last_agent_message.clone(),
-                };
+                match out {
+                    AgentOutcome::Quit => {
+                        self.log_event(AppEvent::Quit);
+                        self.should_quit = true;
+                    }
+                    AgentOutcome::Message(s) => {
+                        self.last_agent_message = Some(s);
+                    }
+                    AgentOutcome::Noop => {}
+                }
             }
             KeyCode::Char(c) => {
                 self.agent_buffer.push(c);
@@ -379,7 +413,7 @@ impl App {
         self.list_state.select(Some(new));
         if let Some(id) = self.filtered_ids.get(new) {
             self.selected_id = Some(*id);
-            self.event_log.push(AppEvent::SelectionChanged(Some(*id)));
+            self.log_event(AppEvent::SelectionChanged(Some(*id)));
         }
     }
 
@@ -411,7 +445,7 @@ impl App {
                     self.list_state.select(Some(idx));
                     if let Some(id) = self.filtered_ids.get(idx) {
                         self.selected_id = Some(*id);
-                        self.event_log.push(AppEvent::SelectionChanged(Some(*id)));
+                        self.log_event(AppEvent::SelectionChanged(Some(*id)));
                     }
                 }
             }

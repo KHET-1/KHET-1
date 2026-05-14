@@ -5,6 +5,7 @@ use nucleo_matcher::pattern::{CaseMatching, Normalization, Pattern};
 use nucleo_matcher::{Matcher, Utf32Str};
 use std::cmp::Reverse;
 use std::thread;
+use std::thread::JoinHandle;
 
 use crate::model::ToolId;
 
@@ -24,18 +25,31 @@ pub struct FilterResult {
     pub ordered_ids: Vec<ToolId>,
 }
 
-pub struct WorkerHandle {
-    pub tx: Sender<FilterJob>,
-    pub rx: Receiver<FilterResult>,
+/// Owning handle: dropping the sender ends the worker `recv` loop; [`shutdown`](Self::shutdown) joins the thread.
+pub struct FilterWorker {
+    job_tx: Sender<FilterJob>,
+    pub result_rx: Receiver<FilterResult>,
+    join: JoinHandle<()>,
 }
 
-pub fn spawn_filter_worker() -> WorkerHandle {
+impl FilterWorker {
+    pub fn job_tx(&self) -> &Sender<FilterJob> {
+        &self.job_tx
+    }
+
+    pub fn shutdown(self) -> thread::Result<()> {
+        drop(self.job_tx);
+        self.join.join()
+    }
+}
+
+pub fn spawn_filter_worker() -> FilterWorker {
     let (job_tx, job_rx): (Sender<FilterJob>, Receiver<FilterJob>) =
         crossbeam_channel::bounded(CHANNEL_CAP);
     let (res_tx, res_rx): (Sender<FilterResult>, Receiver<FilterResult>) =
         crossbeam_channel::bounded(CHANNEL_CAP);
 
-    thread::spawn(move || {
+    let join = thread::spawn(move || {
         let mut matcher = Matcher::new(nucleo_matcher::Config::DEFAULT);
         let mut buf = Vec::new();
 
@@ -48,9 +62,10 @@ pub fn spawn_filter_worker() -> WorkerHandle {
         }
     });
 
-    WorkerHandle {
-        tx: job_tx,
-        rx: res_rx,
+    FilterWorker {
+        job_tx,
+        result_rx: res_rx,
+        join,
     }
 }
 
@@ -93,5 +108,11 @@ mod tests {
         let items = vec![(1u32, "git".into()), (2u32, "cargo".into())];
         let out = rank("", &items, &mut m, &mut buf);
         assert_eq!(out, vec![1, 2]);
+    }
+
+    #[test]
+    fn worker_shutdown_joins() {
+        let w = spawn_filter_worker();
+        w.shutdown().unwrap();
     }
 }

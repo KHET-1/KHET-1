@@ -32,6 +32,17 @@ pub struct EventLog {
     max: usize,
 }
 
+/// Append-only audit sink (same backing as [`EventLog`] today; swap for disk / Merkle later).
+pub trait Journal {
+    fn append(&mut self, event: AppEvent);
+}
+
+impl Journal for EventLog {
+    fn append(&mut self, event: AppEvent) {
+        self.push(event);
+    }
+}
+
 impl EventLog {
     pub fn new(max: usize) -> Self {
         Self {
@@ -52,5 +63,18 @@ impl EventLog {
         let len = self.entries.len();
         let start = len.saturating_sub(n);
         &self.entries[start..]
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn journal_trait_appends() {
+        let mut log = EventLog::new(8);
+        let j: &mut dyn Journal = &mut log;
+        j.append(AppEvent::Quit);
+        assert!(matches!(log.tail(1)[0], AppEvent::Quit));
     }
 }
