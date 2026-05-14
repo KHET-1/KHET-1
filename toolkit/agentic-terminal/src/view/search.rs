@@ -71,12 +71,18 @@ impl View for SearchView {
                 KeyCode::Enter => {
                     if let Some(tool) = ctx.shared.navigator.selected_tool() {
                         let tool_name = tool.name.clone();
-                        match ctx.shared.background.send_open_tool(tool_name.clone()) {
-                            Ok(()) => ctx.shared.push_message(format!(
-                                "Submitted tool lookup: {tool_name}"
-                            )),
-                            Err(WorkerBusyError(())) => {
-                                ctx.shared.push_message("system busy, retry");
+                        ctx.shared.session_state.add_recent(tool_name.clone());
+                        
+                        if ctx.shared.helper_mode.helper_only {
+                            ctx.shared.push_message(format!("Remembered: {tool_name}"));
+                        } else {
+                            match ctx.shared.background.send_open_tool(tool_name.clone()) {
+                                Ok(()) => ctx.shared.push_message(format!(
+                                    "Submitted tool lookup: {tool_name}"
+                                )),
+                                Err(WorkerBusyError(())) => {
+                                    ctx.shared.push_message("system busy, retry");
+                                }
                             }
                         }
                     }
@@ -202,9 +208,15 @@ impl View for SearchView {
             ""
         };
 
+        let help_text = if ctx.shared.helper_mode.helper_only {
+            "q=quit | ↑↓ PgUp/PgDn | Enter=remember | Helper mode"
+        } else {
+            "q=quit | ↑↓ PgUp/PgDn | wheel/click | Enter=open"
+        };
+
         frame.render_widget(
             Paragraph::new(format!(
-                "q=quit | ↑↓ PgUp/PgDn | wheel/click | Enter=open\n{busy_star}{latest_block}",
+                "{help_text}\n{busy_star}{latest_block}",
             ))
             .block(Block::default().borders(Borders::ALL).title("Status")),
             vertical[2],

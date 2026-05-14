@@ -10,8 +10,10 @@ use ratatui::backend::CrosstermBackend;
 use ratatui::{layout::Rect, Terminal};
 
 use crate::agent::AgentEvent;
+use crate::helper_mode::HelperModeConfig;
 use crate::navigator::ToolNavigator;
 use crate::runtime::BackgroundRuntime;
+use crate::state::SessionState;
 use crate::term::TerminalGuard;
 use crate::view::search::SearchView;
 use crate::view::{ViewResult, ViewStack};
@@ -68,6 +70,8 @@ pub struct AppShared {
     pub background: BackgroundRuntime,
     pub resize_debouncer: ResizeDebouncer,
     pub should_quit: bool,
+    pub helper_mode: HelperModeConfig,
+    pub session_state: SessionState,
 }
 
 impl AppShared {
@@ -86,6 +90,26 @@ impl AppShared {
             background,
             resize_debouncer: ResizeDebouncer::new(120),
             should_quit: false,
+            helper_mode: HelperModeConfig::default(),
+            session_state: SessionState::new(),
+        }
+    }
+
+    #[must_use]
+    pub fn with_helper_mode(background: BackgroundRuntime, helper_only: bool) -> Self {
+        let navigator = ToolNavigator::new(background.sync().tools_clone());
+        Self {
+            search_query: String::new(),
+            messages: VecDeque::new(),
+            list_height: 20,
+            list_area: Rect::default(),
+            input_area: Rect::default(),
+            navigator,
+            background,
+            resize_debouncer: ResizeDebouncer::new(120),
+            should_quit: false,
+            helper_mode: HelperModeConfig::new(helper_only),
+            session_state: SessionState::new(),
         }
     }
 
@@ -129,12 +153,22 @@ fn ingest_agent_mailbox(shared: &mut AppShared) -> bool {
 ///
 /// Caller must invoke [`crate::term::install_panic_hook`] before terminal setup.
 pub fn run_app() -> Result<(), Box<dyn Error + Send + Sync>> {
+    run_app_with_config(HelperModeConfig::default())
+}
+
+/// Entry-point with explicit helper mode configuration.
+pub fn run_app_with_config(config: HelperModeConfig) -> Result<(), Box<dyn Error + Send + Sync>> {
     let _guard = TerminalGuard::enter()?;
     let mut terminal = Terminal::new(CrosstermBackend::new(stdout()))?;
 
     let background = BackgroundRuntime::new();
-    let mut shared = AppShared::new(background);
-    shared.push_message("Ready. / opens the command palette.");
+    let mut shared = AppShared::with_helper_mode(background, config.helper_only);
+    
+    if config.helper_only {
+        shared.push_message("Helper mode: navigation only (no agent commands).");
+    } else {
+        shared.push_message("Ready. / opens the command palette.");
+    }
 
     let mut stack = ViewStack::with_base(Box::<SearchView>::default());
     let mut dirty = true;
