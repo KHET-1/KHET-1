@@ -72,7 +72,7 @@ impl View for SearchView {
                     if let Some(tool) = ctx.shared.navigator.selected_tool() {
                         let tool_name = tool.name.clone();
                         ctx.shared.session_state.add_recent(tool_name.clone());
-                        
+
                         if ctx.shared.helper_mode.helper_only {
                             ctx.shared.push_message(format!("Remembered: {tool_name}"));
                         } else {
