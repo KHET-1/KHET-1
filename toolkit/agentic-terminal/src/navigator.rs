@@ -79,7 +79,7 @@ impl ToolNavigator {
     }
 
     pub fn refresh_matches(&mut self, reset_selection_top: bool) {
-        let _status = self.nucleo.tick(10);
+        let _ = self.nucleo.tick(10);
         self.rebuild_matches_snapshot();
         if reset_selection_top {
             self.pick_top_or_none();
