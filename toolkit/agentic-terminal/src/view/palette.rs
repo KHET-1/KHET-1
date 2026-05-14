@@ -1,0 +1,1 @@
+//! Command palette (agent prompt).

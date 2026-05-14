@@ -1,0 +1,1 @@
+//! Main search + preview surface.
