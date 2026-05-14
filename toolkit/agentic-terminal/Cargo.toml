@@ -1,0 +1,24 @@
+[package]
+name = "agentic-terminal"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.75"
+
+[dependencies]
+ratatui = "0.29"
+crossterm = "0.28"
+nucleo = "0.5"
+tokio = { version = "1", features = ["rt", "sync", "macros", "time"] }
+crossbeam-channel = "0.5"
+thiserror = "2"
+parking_lot = "0.12"
+# 1.6+ pulls edition2024-only releases; pin for cargo 1.83 / MSRV 1.75.
+blake3 = "=1.5.5"
+
+[[bin]]
+name = "agentic-terminal"
+path = "src/main.rs"
+
+[lib]
+name = "agentic_terminal"
+path = "src/lib.rs"
