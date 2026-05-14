@@ -1,6 +1,5 @@
 //! Tool list navigation backed by nucleo.
 
-use std::collections::HashMap;
 use std::sync::Arc;
 
 use nucleo::pattern::{CaseMatching, Normalization};
@@ -15,35 +14,41 @@ pub struct Match {
     pub score: u32,
 }
 
+#[derive(Clone)]
+struct NavItem {
+    tool_idx: usize,
+    name: String,
+}
+
 pub struct ToolNavigator {
-    nucleo: Nucleo<Tool>,
+    nucleo: Nucleo<NavItem>,
     tools: Vec<Tool>,
-    name_index: HashMap<String, usize>,
     matches: Vec<Match>,
     pub list_state: ListState,
 }
 
 impl ToolNavigator {
     pub fn new(tools: Vec<Tool>) -> Self {
-        let name_index = tools
-            .iter()
-            .enumerate()
-            .map(|(i, t)| (t.name.clone(), i))
-            .collect::<HashMap<_, _>>();
-
         let notify = Arc::new(|| {});
         let mut nucleo = Nucleo::new(NucleoConfig::DEFAULT, notify, Some(1), 1);
         let injector = nucleo.injector();
-        for t in tools.iter().cloned() {
-            injector.push(t, |tool, cols| {
-                cols[0] = Utf32String::from(tool.name.as_str());
-            });
+        for (tool_idx, t) in tools.iter().enumerate() {
+            injector.push(
+                NavItem {
+                    tool_idx,
+                    name: t.name.clone(),
+                },
+                |item, cols| {
+                    cols[0] = Utf32String::from(item.name.as_str());
+                },
+            );
         }
-        nucleo.pattern.reparse(0, "", CaseMatching::Smart, Normalization::Smart, false);
+        nucleo
+            .pattern
+            .reparse(0, "", CaseMatching::Smart, Normalization::Smart, false);
         let mut nav = Self {
             nucleo,
             tools,
-            name_index,
             matches: Vec::new(),
             list_state: ListState::default(),
         };
@@ -62,30 +67,24 @@ impl ToolNavigator {
             let Some(item) = snap.get_matched_item(i) else {
                 continue;
             };
-            let Some(&tool_idx) = self.name_index.get(item.data.name.as_str()) else {
-                continue;
-            };
             let score = snap
                 .pattern()
                 .score(item.matcher_columns, &mut matcher)
                 .unwrap_or(0);
-            self.matches.push(Match { tool_idx, score });
+            self.matches.push(Match {
+                tool_idx: item.data.tool_idx,
+                score,
+            });
         }
     }
 
     pub fn refresh_matches(&mut self, reset_selection_top: bool) {
-        loop {
-            let status = self.nucleo.tick(10);
-            self.rebuild_matches_snapshot();
-            if reset_selection_top {
-                self.pick_top_or_none();
-            } else {
-                self.stabilize_selection();
-            }
-
-            if !status.running {
-                break;
-            }
+        let _status = self.nucleo.tick(10);
+        self.rebuild_matches_snapshot();
+        if reset_selection_top {
+            self.pick_top_or_none();
+        } else {
+            self.stabilize_selection();
         }
     }
 
@@ -112,7 +111,7 @@ impl ToolNavigator {
 
     pub fn set_query(&mut self, query: &str) {
         let trimmed = query.trim();
-        let pat = if trimmed.is_empty() { "" } else { query };
+        let pat = if trimmed.is_empty() { "" } else { trimmed };
         self.nucleo.pattern.reparse(0, pat, CaseMatching::Smart, Normalization::Smart, false);
         self.refresh_matches(/* reset_selection_top */ true);
     }

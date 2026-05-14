@@ -2,19 +2,30 @@
 
 use crate::types::{Hash, Tool, ToolManifest, ToolSource};
 
+fn push_len(out: &mut Vec<u8>, len: usize) {
+    let len_u64 = u64::try_from(len).expect("length exceeds u64");
+    out.extend_from_slice(&len_u64.to_le_bytes());
+}
+
 fn push_field(out: &mut Vec<u8>, label: &[u8], value: &[u8]) {
+    push_len(out, label.len());
     out.extend_from_slice(label);
+    push_len(out, value.len());
     out.extend_from_slice(value);
-    out.push(b'\n');
 }
 
 /// Deterministic serialization of tools for hashing and verification.
 pub fn canonical_tool_bytes(tools: &[Tool]) -> Vec<u8> {
     let mut buf = Vec::new();
+    push_len(&mut buf, tools.len());
+
     for tool in tools {
         push_field(&mut buf, b"name:", tool.name.as_bytes());
         push_field(&mut buf, b"desc:", tool.description.as_bytes());
-        push_field(&mut buf, b"examples:", tool.examples.join("|").as_bytes());
+        push_len(&mut buf, tool.examples.len());
+        for example in &tool.examples {
+            push_field(&mut buf, b"example:", example.as_bytes());
+        }
         let pkg = tool.package.clone().unwrap_or_default();
         push_field(&mut buf, b"package:", pkg.as_bytes());
         let nix_attr = tool.nix_attr.clone().unwrap_or_default();
@@ -23,8 +34,6 @@ pub fn canonical_tool_bytes(tools: &[Tool]) -> Vec<u8> {
         push_field(&mut buf, b"version:", version.as_bytes());
         let homepage = tool.homepage.clone().unwrap_or_default();
         push_field(&mut buf, b"homepage:", homepage.as_bytes());
-        buf.push(b'!');
-        buf.push(b'\n');
     }
     buf
 }

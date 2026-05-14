@@ -90,10 +90,11 @@ impl Drop for BackgroundRuntime {
             while !handle.is_finished() && std::time::Instant::now() < deadline {
                 thread::sleep(Duration::from_millis(10));
             }
-            if !handle.is_finished() {
+            if handle.is_finished() {
+                let _res = handle.join();
+            } else {
                 eprintln!("agentic-terminal: worker thread stalled during shutdown");
             }
-            let _res = handle.join();
         }
     }
 }
@@ -183,18 +184,18 @@ fn spawn_worker(
             .enable_all()
             .build()
             .expect("spawn background Tokio runtime");
-        let (signal_tx, mut signal_rx) = mpsc::unbounded_channel::<BridgeSignal>();
+        let (signal_tx, mut signal_rx) = mpsc::channel::<BridgeSignal>(128);
 
         let signal_sender = signal_tx.clone();
         let bridge = thread::spawn(move || loop {
             crossbeam_channel::select! {
                 recv(shutdown_rx) -> _ => {
-                    let _ = signal_sender.send(BridgeSignal::Stop);
+                    let _ = signal_sender.blocking_send(BridgeSignal::Stop);
                     break;
                 },
                 recv(work_rx) -> msg => match msg {
                     Ok(cmd) => {
-                        if signal_sender.send(BridgeSignal::Work(cmd)).is_err() {
+                        if signal_sender.blocking_send(BridgeSignal::Work(cmd)).is_err() {
                             break;
                         }
                     },
