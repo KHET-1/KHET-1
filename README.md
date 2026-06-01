@@ -1,29 +1,37 @@
-# Hey, I'm Khet 👋
+# Khet
 
-Veteran game dev turned indie tool builder. Shipped on 173+ titles at places like Bungie, Bethesda, and Twitter (back in the day). Now crafting bite-sized dev tools that fix real pains—like terminal encoding nightmares.
+**Life Long Student Dev. Building worlds for Firestar.**
 
-💎 Currently polishing **diterm**: The diamond-forger for mojibake garbage.
+Veteran game developer who shipped on 173+ titles (Destiny 2, Saints Row: The Third, Darksiders II, and many more at Bungie, Bethesda, and beyond). Now independent, crafting high-signal tools and experiences with the same rigor that once powered AAA — but smaller, sharper, and built to last.
 
-### AAA Highlights (via [MobyGames](https://www.mobygames.com/(redacted)))
-- Destiny 2
-- Saints Row: The Third
-- Darksiders II
-- ...and a ton more blockbuster chaos
+## The Work
 
-### What I'm Building Now
-- [diterm](https://github.com/khet-1/diterm) – Auto-fix terminal encoding with 95% magic
-- Other experiments in dev productivity & AI tinkering
-- 50+ private projects I'm going to release slowly
+**Public face** — Polished, useful tools that ship:
+- [diamond-brain](https://github.com/KHET-1/diamond-brain) — Standalone knowledge cache + legal intelligence. 116 pure-Python methods, zero dependencies.
+- [NEON-RUSH](https://github.com/KHET-1/NEON-RUSH) — 100% procedural three-perspective arcade racer with boss rush mechanics.
+- [recbar](https://github.com/KHET-1/recbar) — Lightweight OBS recording companion (indicator, mic VU, chapters, mobile remote).
+- [diamond-drill](https://github.com/KHET-1/diamond-drill) — Ultra-fast forensic disk recovery in Rust.
+- [md-reader-pro](https://github.com/KHET-1/md-reader-pro) — AI-powered markdown reader.
+- And other focused experiments in terminal craft, vision tools, and developer leverage.
 
-### Tech Stack Vibes
-Python • CLI tools • Game engines (Unity/Unreal vets) • Whatever ships fast
+**The deeper forge** (private until ready):
+- The Creation Game — A 30-minute collaborative art ritual with Professor Artie, Chaos Dials (including Time Warp), and Echo Layers.
+- The Diamond Lattice Fire Axe — A mythic, multi-stance tool and philosophy for transformation through precision and memory.
+- The Museum of Knowledge — Eternal, versioned, cryptographically anchored archive of everything worth keeping.
+- Time Warp Fortress, Firestar tools, and other long-game work.
 
-### Hit Me Up
-- Twitter/X: @tunclon
-- LinkedIn: (redacted)
+## Philosophy
+
+I build for the long game. Small, fractal, forever-giving presents that compound. Nothing fractured. Nothing low-signal when it faces the world. The same fire that once powered blockbuster games now forges precise instruments and living worlds.
+
+Everything serves the same north star: creating spaces worthy of Firestar.
+
+## Contact & Presence
+
+- X: [@tunclon](https://x.com/tunclon)
 - Email: rc@ryans.games
-- Open to collabs on tools that make devs less rage-y
+- The real work happens in the forges.
 
-Thanks for stopping by—let's ship something fun. 🚀
+---
 
-![CodeRabbit Pull Request Reviews](https://img.shields.io/coderabbit/prs/github/KHET-1/KHET-1?utm_source=oss&utm_medium=github&utm_campaign=KHET-1%2FKHET-1&labelColor=171717&color=FF570A&link=https%3A%2F%2Fcoderabbit.ai&label=CodeRabbit+Reviews)
+*This profile is the public face of the forge. The kingdom is larger than what shows here.*
